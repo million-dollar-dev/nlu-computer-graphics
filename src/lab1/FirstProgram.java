@@ -1,12 +1,21 @@
 package lab1;
+
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.nio.FloatBuffer;
+
+import static com.jogamp.opengl.GL.GL_ARRAY_BUFFER;
+import static com.jogamp.opengl.GL.GL_STATIC_DRAW;
 import static com.jogamp.opengl.GL2.*;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+
+import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL2;
+import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLAutoDrawable;
+import com.jogamp.opengl.GLContext;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.awt.GLJPanel;
 import com.jogamp.opengl.glu.GLU;
@@ -18,6 +27,10 @@ public class FirstProgram extends GLJPanel implements GLEventListener {
 	private static final int PANEL_WIDTH = 640; // width of the drawable
 	private static final int PANEL_HEIGHT = 480; // height of the drawable
 	private static final int FPS = 60; // animator's target frames per second
+
+	private int renderingProgram;
+	private int vao[] = new int[1];
+	private int vbo[] = new int[2];
 
 	/** The entry main() method to setup the top-level container and animator */
 	public static void main(String[] args) {
@@ -75,16 +88,25 @@ public class FirstProgram extends GLJPanel implements GLEventListener {
 	 */
 	@Override
 	public void init(GLAutoDrawable drawable) {
-		GL2 gl = drawable.getGL().getGL2(); // get the OpenGL graphics context
-		glu = new GLU(); // get GL Utilities
-		gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // set background (clear) color
-		gl.glClearDepth(1.0f); // set clear depth value to farthest
-		gl.glEnable(GL_DEPTH_TEST); // enables depth testing
-		gl.glDepthFunc(GL_LEQUAL); // the type of depth test to do
-		gl.glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); // best perspective correction
-		gl.glShadeModel(GL_SMOOTH); // blends colors nicely, and smoothes out lighting
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		float[] vertexPositions = { -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
+				1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
+				-1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
+				1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f,
+				-1.0f, 1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
+				-1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
+				1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
+				-1.0f };
+		renderingProgram = createShaderProgram();
+		gl.glGenVertexArrays(vao.length, vao, 0);
+		gl.glBindVertexArray(vao[0]);
+		gl.glGenVertexArrays(vao.length, vao, 0);
+		gl.glBindVertexArray(vao[0]);
+		gl.glGenBuffers(vbo.length, vbo, 0);
 
-		// ----- Your OpenGL initialization code here -----
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+		FloatBuffer vertBuf = Buffers.newDirectFloatBuffer(vertexPositions);
+		gl.glBufferData(GL_ARRAY_BUFFER, vertBuf.limit() * 4, vertBuf, GL_STATIC_DRAW);
 	}
 
 	/**
@@ -93,23 +115,7 @@ public class FirstProgram extends GLJPanel implements GLEventListener {
 	 */
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-		GL2 gl = drawable.getGL().getGL2(); // get the OpenGL 2 graphics context
-
-		if (height == 0)
-			height = 1; // prevent divide by zero
-		float aspect = (float) width / height;
-
-		// Set the view port (display area) to cover the entire window
-		gl.glViewport(0, 0, width, height);
-
-		// Setup perspective projection, with aspect ratio matches viewport
-		gl.glMatrixMode(GL_PROJECTION); // choose projection matrix
-		gl.glLoadIdentity(); // reset projection matrix
-		glu.gluPerspective(45.0, aspect, 0.1, 100.0); // fovy, aspect, zNear, zFar
-
-		// Enable the model-view transform
-		gl.glMatrixMode(GL_MODELVIEW);
-		gl.glLoadIdentity(); // reset
+		
 	}
 
 	/**
@@ -117,17 +123,10 @@ public class FirstProgram extends GLJPanel implements GLEventListener {
 	 */
 	@Override
 	public void display(GLAutoDrawable drawable) {
-		GL2 gl = drawable.getGL().getGL2(); // get the OpenGL 2 graphics context
-		gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear color and depth buffers
-		gl.glLoadIdentity(); // reset the model-view matrix
-
-		// ----- Your OpenGL rendering code here (Render a white triangle for testing)
-		gl.glTranslatef(0.0f, 0.0f, -6.0f); // translate into the screen
-		gl.glBegin(GL_TRIANGLES); // draw using triangles
-		gl.glVertex3f(0.0f, 1.0f, 0.0f);
-		gl.glVertex3f(-1.0f, -1.0f, 0.0f);
-		gl.glVertex3f(1.0f, -1.0f, 0.0f);
-		gl.glEnd();
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		gl.glUseProgram(renderingProgram);
+		gl.glDrawArrays(GL_POINTS, 0, 1);
+		gl.glPointSize(30.0f);
 	}
 
 	/**
@@ -136,5 +135,28 @@ public class FirstProgram extends GLJPanel implements GLEventListener {
 	 */
 	@Override
 	public void dispose(GLAutoDrawable drawable) {
+	}
+
+	private int createShaderProgram() {
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		String vshaderSource[] = { "#version 430      \n", "layout (location=0) in vec3 position;  \n",
+				"uniform mat4 mv_matrix;   \n", "uniform mat4 p_matrix;   \n", "void main(void)  \n",
+				"{  gl_Position = p_matrix * mv_matrix * vec4(position, 1.0);  }  \n"};
+		String fshaderSource[] = { "#version 430      \n", "out vec4 color;  \n",
+				"uniform mat4 mv_matrix;   \n", "uniform mat4 p_matrix;   \n", "void main(void)  \n",
+				"{  color = vec4(0.0, 0.0, 1.0, 1.0);  }  \n"};
+		int vShader = gl.glCreateShader(GL_VERTEX_SHADER);
+		gl.glShaderSource(vShader, vshaderSource.length, vshaderSource, null, 0); // 3 is the count of lines of source code
+		gl.glCompileShader(vShader);
+		int fShader = gl.glCreateShader(GL_FRAGMENT_SHADER);
+		gl.glShaderSource(fShader, fshaderSource.length, fshaderSource, null, 0); // 4 is the count of lines of source code
+		gl.glCompileShader(fShader);
+		int vfProgram = gl.glCreateProgram();
+		gl.glAttachShader(vfProgram, vShader);
+		gl.glAttachShader(vfProgram, fShader);
+		gl.glLinkProgram(vfProgram);
+		gl.glDeleteShader(vShader);
+		gl.glDeleteShader(fShader);
+		return vfProgram;
 	}
 }
