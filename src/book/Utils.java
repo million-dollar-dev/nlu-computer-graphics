@@ -34,12 +34,14 @@ public class Utils {
 
 	public static int createShaderProgram(String vShaderSource, String fShaderSource) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
-		String vshaderSource[] = { "#version 430      \n", "layout (location=0) in vec3 position;  \n",
-				"uniform mat4 mv_matrix;   \n", "uniform mat4 p_matrix;   \n", "void main(void)  \n",
-				"{  gl_Position = p_matrix * mv_matrix * vec4(position, 1.0);  }  \n"};
-		String fshaderSource[] = { "#version 430      \n", "out vec4 color;  \n",
-				"uniform mat4 mv_matrix;   \n", "uniform mat4 p_matrix;   \n", "void main(void)  \n",
-				"{  color = vec4(0.0, 0.0, 1.0, 1.0);  }  \n"};
+//		String vshaderSource[] = { "#version 430      \n", "layout (location=0) in vec3 position;  \n",
+//				"uniform mat4 mv_matrix;   \n", "uniform mat4 p_matrix;   \n", "void main(void)  \n",
+//				"{  gl_Position = p_matrix * mv_matrix * vec4(position, 1.0);  }  \n"};
+//		String fshaderSource[] = { "#version 430      \n", "out vec4 color;  \n",
+//				"uniform mat4 mv_matrix;   \n", "uniform mat4 p_matrix;   \n", "void main(void)  \n",
+//				"{  color = vec4(0.0, 0.0, 1.0, 1.0);  }  \n"};
+		String vshaderSource[] = readShaderSource(vShaderSource);
+		String fshaderSource[] = readShaderSource(fShaderSource);		
 		int vShader = gl.glCreateShader(GL_VERTEX_SHADER);
 		gl.glShaderSource(vShader, vshaderSource.length, vshaderSource, null, 0); // 3 is the count of lines of source code
 		gl.glCompileShader(vShader);
