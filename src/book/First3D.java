@@ -3,6 +3,7 @@ package book;
 import static com.jogamp.opengl.GL4.*;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
+import com.jogamp.opengl.util.Animator;
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GLContext;
 import org.joml.*;
@@ -28,6 +29,7 @@ public class First3D extends JFrame implements GLEventListener {
 	private float aspect;
 	private String vShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\vertShader.glsl";
 	private String fShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\fragShader.glsl";
+	private double elapsedTime, startTime, tf;
 
 	/** Constructor to setup the GUI for this Component */
 	public First3D() {
@@ -36,8 +38,10 @@ public class First3D extends JFrame implements GLEventListener {
 		myCanvas = new GLCanvas();
 		myCanvas.addGLEventListener(this);
 		this.add(myCanvas);
-		this.setVisible(true);
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+		Animator animtr = new Animator(myCanvas);
+		animtr.start();
+		this.setVisible(true);
 	}
 	// ------ Implement methods declared in GLEventListener ------
 
@@ -75,6 +79,11 @@ public class First3D extends JFrame implements GLEventListener {
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		gl.glClear(GL_COLOR_BUFFER_BIT);
 		gl.glUseProgram(renderingProgram);
+		// use system time to generate slowly-increasing sequence of floating-point
+		// values
+		elapsedTime = System.currentTimeMillis() - startTime; // elapsedTime, startTime, and tf
+		tf = elapsedTime / 1000.0;
+		// would all be declared of type double.
 		// get references to the uniform variables for the MV and projection matrices
 		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");
 		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
@@ -86,20 +95,28 @@ public class First3D extends JFrame implements GLEventListener {
 		// build view matrix, model matrix, and model-view matrix
 		vMat.translation(-cameraX, -cameraY, -cameraZ);
 		mMat.translation(cubeLocX, cubeLocY, cubeLocZ);
+//		for (int i = 0; i < 24; i++) {
+//			double x = tf + i;
+//			mMat.identity();
+//			mMat.translate((float) Math.sin(.35f * x) * 8.0f, (float) Math.sin(.52f * x) * 8.0f,
+//					(float) Math.sin((.70f * x) * 8.0f));
+//			mMat.rotateXYZ(1.75f * (float) x, 1.75f * (float) x, 1.75f * (float) x);
+		mMat.identity();
+		mMat.translate((float) Math.sin(.35f * tf) * 2.0f, (float) Math.sin(.52f * tf) * 2.0f,
+				(float) Math.sin(.7f * tf) * 2.0f);
+		mMat.rotateXYZ(1.75f * (float) tf, 1.75f * (float) tf, 1.75f * (float) tf);
 		mvMat.identity();
 		mvMat.mul(vMat);
 		mvMat.mul(mMat);
-		// copy perspective and MV matrices to corresponding uniform variables
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-		// associate VBO with the corresponding vertex attribute in the vertex shader
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
-		// adjust OpenGL settings and draw model
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
+//		}
 	}
 
 	/**
