@@ -11,7 +11,7 @@ import java.nio.*;
 import javax.swing.*;
 import java.lang.Math;
 
-public class Cube24 extends JFrame implements GLEventListener {
+public class Program4_3 extends JFrame implements GLEventListener {
 	// Setup OpenGL Graphics Renderer
 	// for the GL Utility
 	private GLCanvas myCanvas;
@@ -20,19 +20,20 @@ public class Cube24 extends JFrame implements GLEventListener {
 	private int vbo[] = new int[2];
 	private float cameraX, cameraY, cameraZ;
 	private float cubeLocX, cubeLocY, cubeLocZ;
+	private float pyraLocX, pyraLocY, pyraLocZ;
 	private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);
 	private Matrix4f pMat = new Matrix4f();
 	private Matrix4f vMat = new Matrix4f();
 	private Matrix4f mMat = new Matrix4f();
 	private Matrix4f mvMat = new Matrix4f();
-	private int vLoc, pLoc;
+	private int mvLoc, pLoc;
 	private float aspect;
-	private String vShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\vertShader24.glsl";
-	private String fShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\fragShader24.glsl";
-	private double elapsedTime, startTime, tf, timeFactor;
+	private String vShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\vertShader.glsl";
+	private String fShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\fragShader.glsl";
+	private double elapsedTime, startTime, tf;
 
 	/** Constructor to setup the GUI for this Component */
-	public Cube24() {
+	public Program4_3() {
 		setTitle("Chapter4 - program1a");
 		setSize(600, 600);
 		myCanvas = new GLCanvas();
@@ -60,6 +61,12 @@ public class Cube24 extends JFrame implements GLEventListener {
 		cubeLocX = 0.0f;
 		cubeLocY = -2.0f;
 		cubeLocZ = 0.0f;
+//		pyraLocX = 2.0f;
+//		pyraLocY = 2.0f;
+//		pyraLocZ = -2.0f;
+		pyraLocX = 2.0f;
+		pyraLocY = 2.0f;
+		pyraLocZ = -3.0f;
 	}
 
 	/**
@@ -79,32 +86,51 @@ public class Cube24 extends JFrame implements GLEventListener {
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		gl.glClear(GL_COLOR_BUFFER_BIT);
 		gl.glUseProgram(renderingProgram);
-
-		elapsedTime = System.currentTimeMillis() - startTime;
+		// use system time to generate slowly-increasing sequence of floating-point
+		// values
+		elapsedTime = System.currentTimeMillis() - startTime; // elapsedTime, startTime, and tf
 		tf = elapsedTime / 1000.0;
-		vLoc = gl.glGetUniformLocation(renderingProgram, "v_matrix");
+		// would all be declared of type double.
+		// get references to the uniform variables for the MV and projection matrices
+		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");
 		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
-		int tfLoc = gl.glGetUniformLocation(renderingProgram, "tf"); // uniform for the time factor
-		gl.glUniform1f(tfLoc, (float) timeFactor);
+		// build perspective matrix. This one has fovy=60, aspect ratio matches the
+		// screen window.
+		// Values for near and far clipping planes can vary as discussed in Section 4.9
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
 		pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
+		// build view matrix, model matrix, and model-view matrix
 		vMat.translation(-cameraX, -cameraY, -cameraZ);
+
+		// draw the cube (use buffer #0)
 		mMat.translation(cubeLocX, cubeLocY, cubeLocZ);
-		mMat.identity();
-		mMat.rotateXYZ(1.75f * (float) tf, 1.75f * (float) tf, 1.75f * (float) tf);
-		mMat.translate((float) Math.sin(.35f * tf) * 2.0f, (float) Math.sin(.52f * tf) * 2.0f,
-				(float) Math.sin(.7f * tf) * 2.0f);
+
 		mvMat.identity();
 		mvMat.mul(vMat);
 		mvMat.mul(mMat);
-		gl.glUniformMatrix4fv(vLoc, 1, false, mvMat.get(vals));
+		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
-		gl.glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 24);
+		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// draw the pyramid (use buffer #1)
+		mMat.translation(pyraLocX, pyraLocY, pyraLocZ);
+
+		mvMat.identity();
+		mvMat.mul(vMat);
+		mvMat.mul(mMat);
+		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+		gl.glEnableVertexAttribArray(0);
+		gl.glEnable(GL_DEPTH_TEST);
+		gl.glDepthFunc(GL_LEQUAL);
+		gl.glDrawArrays(GL_TRIANGLES, 0, 18);
 
 	}
 
@@ -118,21 +144,28 @@ public class Cube24 extends JFrame implements GLEventListener {
 
 	private void setupVertices() {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
-		float[] vertexPositions = { -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-				1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
-				-1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
-				1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f,
-				-1.0f, 1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
-				-1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
-				1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
-				-1.0f };
+		float[] cubePositions = { -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
+				1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f,
+				1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+				-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f,
+				1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f,
+				1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f,
+				-1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f };
+		float[] pyramidPositions = { -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f, 1.0f,
+				-1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 1.0f, 0.0f, -1.0f, -1.0f,
+				-1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
+				1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f };
 		gl.glGenVertexArrays(vao.length, vao, 0);
 		gl.glBindVertexArray(vao[0]);
 		gl.glGenBuffers(vbo.length, vbo, 0);
 
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-		FloatBuffer vertBuf = Buffers.newDirectFloatBuffer(vertexPositions);
-		gl.glBufferData(GL_ARRAY_BUFFER, vertBuf.limit() * 4, vertBuf, GL_STATIC_DRAW);
+		FloatBuffer cubeBuf = Buffers.newDirectFloatBuffer(cubePositions);
+		gl.glBufferData(GL_ARRAY_BUFFER, cubeBuf.limit() * 4, cubeBuf, GL_STATIC_DRAW);
+
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		FloatBuffer pyraBuf = Buffers.newDirectFloatBuffer(pyramidPositions);
+		gl.glBufferData(GL_ARRAY_BUFFER, pyraBuf.limit() * 4, pyraBuf, GL_STATIC_DRAW);
 	}
 
 	/** The entry main() method to setup the top-level container and animator */
@@ -141,7 +174,7 @@ public class Cube24 extends JFrame implements GLEventListener {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				new Cube24();
+				new Program4_3();
 			}
 		});
 //				// Create the OpenGL rendering canvas
