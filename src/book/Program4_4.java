@@ -62,12 +62,17 @@ public class Program4_4 extends JFrame implements GLEventListener {
 		cubeLocX = 0.0f;
 		cubeLocY = -2.0f;
 		cubeLocZ = 0.0f;
+		pyraLocX = 3.0f;
+		pyraLocY = 3.0f;
+		pyraLocZ = -1.0f;
 //		pyraLocX = 2.0f;
 //		pyraLocY = 2.0f;
-//		pyraLocZ = -2.0f;
-		pyraLocX = 2.0f;
-		pyraLocY = 2.0f;
-		pyraLocZ = -3.0f;
+//		pyraLocZ = -3.0f;
+		// build perspective matrix. This one has fovy=60, aspect ratio matches the
+		// screen window.
+		// Values for near and far clipping planes can vary as discussed in Section 4.9
+		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
+		pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
 	}
 
 	/**
@@ -76,6 +81,12 @@ public class Program4_4 extends JFrame implements GLEventListener {
 	 */
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		aspect = (float) width / (float) height;
+		gl.glViewport(0, 0, width, height);
+		// new window width & height are provided by the callback
+		// sets region of screen associated with the frame buffer
+		pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
 	}
 
 	/**
@@ -86,6 +97,8 @@ public class Program4_4 extends JFrame implements GLEventListener {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		gl.glClear(GL_COLOR_BUFFER_BIT);
+		//
+		gl.glEnable(GL_CULL_FACE);
 		gl.glUseProgram(renderingProgram);
 		// use system time to generate slowly-increasing sequence of floating-point
 		// values
@@ -95,20 +108,10 @@ public class Program4_4 extends JFrame implements GLEventListener {
 		// get references to the uniform variables for the MV and projection matrices
 		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");
 		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
-		// build perspective matrix. This one has fovy=60, aspect ratio matches the
-		// screen window.
-		// Values for near and far clipping planes can vary as discussed in Section 4.9
-		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
-		pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
-		// build view matrix, model matrix, and model-view matrix
-		vMat.translation(-cameraX, -cameraY, -cameraZ);
 
-		// draw the pyramid (use buffer #1)
-//		mMat.translation(pyraLocX, pyraLocY, pyraLocZ);
-//
-//		mvMat.identity();
-//		mvMat.mul(vMat);
-//		mvMat.mul(mMat);
+		// build view matrix, model matrix, and model-view matrix
+		// vMat.translation(-cameraX, -cameraY, -cameraZ);
+
 		// push view matrix onto the stack
 		mvStack.pushMatrix();
 		mvStack.translate(-cameraX, -cameraY, -cameraZ);
@@ -133,7 +136,6 @@ public class Program4_4 extends JFrame implements GLEventListener {
 		mvStack.pushMatrix();
 		mvStack.rotate((float) tf, 1.0f, 1.0f, 1.0f); // planet axis rotation
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
-		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
@@ -145,23 +147,22 @@ public class Program4_4 extends JFrame implements GLEventListener {
 		// -------- smaller cube == moon -----------------
 		mvStack.pushMatrix();
 		mvStack.translate(0.0f, (float) Math.sin(tf) * 2.0f, (float) Math.cos(tf) * 2.0f); // planet moves around sun
-		
 		mvStack.rotate((float) tf, 1.0f, 1.0f, 1.0f); // planet axis rotation
 		mvStack.scale(0.25f, 0.25f, 0.25f);
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
-		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
-		
-		// remove moon scale/rotation/position, sun position and view matrices from stack
+
+		// remove moon scale/rotation/position, sun position and view matrices from
+		// stack
 		mvStack.popMatrix();
 		mvStack.popMatrix();
 		mvStack.popMatrix();
-		mvStack.popMatrix();		
+		mvStack.popMatrix();
 	}
 
 	/**
