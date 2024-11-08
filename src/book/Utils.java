@@ -2,9 +2,12 @@ package book;
 
 import static com.jogamp.opengl.GL2ES2.*;
 import com.jogamp.opengl.glu.GLU;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureIO;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Scanner;
 import java.util.Vector;
 
@@ -14,10 +17,13 @@ import com.jogamp.opengl.GLContext;
 public class Utils {
 	public static String[] readShaderSource(String filename) {
 		Vector<String> lines = new Vector<String>();
-		Scanner sc;
 		String[] program;
-		try {
-			sc = new Scanner(new File(filename));
+		InputStream inputStream = Utils.class.getClassLoader().getResourceAsStream("shaders/" + filename);
+		if (inputStream == null) {
+			System.err.println("File not found: " + filename);
+			return null;
+		}
+		try (Scanner sc = new Scanner(inputStream)) {
 			while (sc.hasNext()) {
 				lines.addElement(sc.nextLine());
 			}
@@ -25,28 +31,21 @@ public class Utils {
 			for (int i = 0; i < lines.size(); i++) {
 				program[i] = (String) lines.elementAt(i) + "\n";
 			}
-		} catch (IOException e) {
-			System.err.println("IOException reading file: " + e);
-			return null;
 		}
 		return program;
 	}
 
 	public static int createShaderProgram(String vShaderSource, String fShaderSource) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
-//		String vshaderSource[] = { "#version 430      \n", "layout (location=0) in vec3 position;  \n",
-//				"uniform mat4 mv_matrix;   \n", "uniform mat4 p_matrix;   \n", "void main(void)  \n",
-//				"{  gl_Position = p_matrix * mv_matrix * vec4(position, 1.0);  }  \n"};
-//		String fshaderSource[] = { "#version 430      \n", "out vec4 color;  \n",
-//				"uniform mat4 mv_matrix;   \n", "uniform mat4 p_matrix;   \n", "void main(void)  \n",
-//				"{  color = vec4(0.0, 0.0, 1.0, 1.0);  }  \n"};
 		String vshaderSource[] = readShaderSource(vShaderSource);
-		String fshaderSource[] = readShaderSource(fShaderSource);		
+		String fshaderSource[] = readShaderSource(fShaderSource);
 		int vShader = gl.glCreateShader(GL_VERTEX_SHADER);
-		gl.glShaderSource(vShader, vshaderSource.length, vshaderSource, null, 0); // 3 is the count of lines of source code
+		gl.glShaderSource(vShader, vshaderSource.length, vshaderSource, null, 0); // 3 is the count of lines of source
+																					// code
 		gl.glCompileShader(vShader);
 		int fShader = gl.glCreateShader(GL_FRAGMENT_SHADER);
-		gl.glShaderSource(fShader, fshaderSource.length, fshaderSource, null, 0); // 4 is the count of lines of source code
+		gl.glShaderSource(fShader, fshaderSource.length, fshaderSource, null, 0); // 4 is the count of lines of source
+																					// code
 		gl.glCompileShader(fShader);
 		int vfProgram = gl.glCreateProgram();
 		gl.glAttachShader(vfProgram, vShader);
@@ -103,8 +102,24 @@ public class Utils {
 		}
 		return foundError;
 	}
+
+	public static int loadTexture(String textureFileName) {
+		Texture tex = null;
+		try {
+            InputStream stream = Utils.class.getClassLoader().getResourceAsStream("assets/" + textureFileName);
+            if (stream == null) {
+                throw new RuntimeException("File not found " + textureFileName);
+            }
+            tex = TextureIO.newTexture(stream, false, TextureIO.PNG); // Thay TextureIO.PNG bằng định dạng file phù hợp nếu cần
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+		int textureID = tex.getTextureObject();
+		return textureID;
+	}
+
 	public static void main(String[] args) {
-		System.out.println(Utils.readShaderSource("E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\vertShader.glsl").toString());
-		System.out.println(Utils.createShaderProgram("E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\vertShader.glsl", "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\fragShader.glsl"));
+		System.out.println(Utils.readShaderSource("fragShader.glsl").toString());
+//		System.out.println(Utils.loadTexture("brick1.png"));
 	}
 }

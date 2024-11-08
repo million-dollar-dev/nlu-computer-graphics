@@ -11,7 +11,7 @@ import java.nio.*;
 import javax.swing.*;
 import java.lang.Math;
 
-public class First3D extends JFrame implements GLEventListener {
+public class Program5_1 extends JFrame implements GLEventListener {
 	// Setup OpenGL Graphics Renderer
 	// for the GL Utility
 	private GLCanvas myCanvas;
@@ -20,6 +20,7 @@ public class First3D extends JFrame implements GLEventListener {
 	private int vbo[] = new int[2];
 	private float cameraX, cameraY, cameraZ;
 	private float cubeLocX, cubeLocY, cubeLocZ;
+	private float pyraLocX, pyraLocY, pyraLocZ;
 	private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);
 	private Matrix4f pMat = new Matrix4f();
 	private Matrix4f vMat = new Matrix4f();
@@ -27,13 +28,14 @@ public class First3D extends JFrame implements GLEventListener {
 	private Matrix4f mvMat = new Matrix4f();
 	private int mvLoc, pLoc;
 	private float aspect;
-	private String vShaderSource = "vertShader.glsl";
-	private String fShaderSource = "fragShader.glsl";
+	private String vShaderSource = "vertShader5_1.glsl";
+	private String fShaderSource = "fragShader5_1.glsl";
 	private double elapsedTime, startTime, tf;
+	private int brickTexture;
 
 	/** Constructor to setup the GUI for this Component */
-	public First3D() {
-		setTitle("Chapter4 - program1a");
+	public Program5_1() {
+		setTitle("Chapter5_1");
 		setSize(600, 600);
 		myCanvas = new GLCanvas();
 		myCanvas.addGLEventListener(this);
@@ -60,6 +62,19 @@ public class First3D extends JFrame implements GLEventListener {
 		cubeLocX = 0.0f;
 		cubeLocY = -2.0f;
 		cubeLocZ = 0.0f;
+		pyraLocX = 0.0f;
+		pyraLocY = -2.0f;
+		pyraLocZ = 0.0f;
+//		pyraLocX = 2.0f;
+//		pyraLocY = 2.0f;
+//		pyraLocZ = -3.0f;
+		// build perspective matrix. This one has fovy=60, aspect ratio matches the
+		// screen window.
+		// Values for near and far clipping planes can vary as discussed in Section 4.9
+		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
+		pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
+		brickTexture = Utils.loadTexture("brick1.png");
+		System.out.println(brickTexture);
 	}
 
 	/**
@@ -68,6 +83,12 @@ public class First3D extends JFrame implements GLEventListener {
 	 */
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		aspect = (float) width / (float) height;
+		gl.glViewport(0, 0, width, height);
+		// new window width & height are provided by the callback
+		// sets region of screen associated with the frame buffer
+		pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
 	}
 
 	/**
@@ -78,6 +99,8 @@ public class First3D extends JFrame implements GLEventListener {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		gl.glClear(GL_COLOR_BUFFER_BIT);
+		//
+		gl.glEnable(GL_CULL_FACE);
 		gl.glUseProgram(renderingProgram);
 		// use system time to generate slowly-increasing sequence of floating-point
 		// values
@@ -87,37 +110,30 @@ public class First3D extends JFrame implements GLEventListener {
 		// get references to the uniform variables for the MV and projection matrices
 		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");
 		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
-		// build perspective matrix. This one has fovy=60, aspect ratio matches the
-		// screen window.
-		// Values for near and far clipping planes can vary as discussed in Section 4.9
-		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
-		pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
+
 		// build view matrix, model matrix, and model-view matrix
 		vMat.translation(-cameraX, -cameraY, -cameraZ);
-		mMat.translation(cubeLocX, cubeLocY, cubeLocZ);
-		for (int i = 0; i < 24; i++) {
-			double x = tf + i;
-			mMat.identity();
-			mMat.translate((float) Math.sin(.35f * x) * 8.0f, (float) Math.sin(.52f * x) * 8.0f,
-					(float) Math.sin((.70f * x) * 8.0f));
-			mMat.rotateXYZ(1.75f * (float) x, 1.75f * (float) x, 1.75f * (float) x);
-//		mMat.identity();
-//		mMat.rotateXYZ(1.75f * (float) tf, 1.75f * (float) tf, 1.75f * (float) tf);
-//		mMat.translate((float) Math.sin(.35f * tf) * 2.0f, (float) Math.sin(.52f * tf) * 2.0f,
-//				(float) Math.sin(.7f * tf) * 2.0f);
-
+		
+		mMat.translation(pyraLocX, pyraLocY, pyraLocZ);
 		mvMat.identity();
 		mvMat.mul(vMat);
 		mvMat.mul(mMat);
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+		// activate buffer #0, which contains the vertices
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
+		// activate buffer #1, which contains the texture coordinates
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
+		gl.glEnableVertexAttribArray(1);
+		// activate texture unit #0 and bind it to the brick texture object
+		gl.glActiveTexture(GL_TEXTURE0);
+		gl.glBindTexture(GL_TEXTURE_2D, brickTexture);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
-		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
+		gl.glDrawArrays(GL_TRIANGLES, 0, 18);
 	}
 
 	/**
@@ -130,21 +146,26 @@ public class First3D extends JFrame implements GLEventListener {
 
 	private void setupVertices() {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
-		float[] vertexPositions = { -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-				1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
-				-1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
-				1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f,
-				-1.0f, 1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
-				-1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
-				1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
-				-1.0f };
+		float[] pyramidPositions = { -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f, 1.0f,
+				-1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 1.0f, 0.0f, -1.0f, -1.0f,
+				-1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
+				1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f };
+		float[] pyrTextureCoordinates = { 0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f,
+				0.0f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+				1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f };
+		// . . . generate the VAO as before, and at least two VBOs, then load the two
+		// buffers as follows:
 		gl.glGenVertexArrays(vao.length, vao, 0);
 		gl.glBindVertexArray(vao[0]);
 		gl.glGenBuffers(vbo.length, vbo, 0);
-
+		
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-		FloatBuffer vertBuf = Buffers.newDirectFloatBuffer(vertexPositions);
-		gl.glBufferData(GL_ARRAY_BUFFER, vertBuf.limit() * 4, vertBuf, GL_STATIC_DRAW);
+		FloatBuffer pyrBuf = Buffers.newDirectFloatBuffer(pyramidPositions);
+		gl.glBufferData(GL_ARRAY_BUFFER, pyrBuf.limit() * 4, pyrBuf, GL_STATIC_DRAW);
+		
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		FloatBuffer pTexBuf = Buffers.newDirectFloatBuffer(pyrTextureCoordinates);
+		gl.glBufferData(GL_ARRAY_BUFFER, pTexBuf.limit() * 4, pTexBuf, GL_STATIC_DRAW);
 	}
 
 	/** The entry main() method to setup the top-level container and animator */
@@ -153,7 +174,7 @@ public class First3D extends JFrame implements GLEventListener {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				new First3D();
+				new Program5_1();
 			}
 		});
 //				// Create the OpenGL rendering canvas

@@ -16,6 +16,6 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="JOGLTemplate/lib"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/hoang/Downloads/joml-1.10.5.jar"/>
+	<classpathentry kind="lib" path="lib/joml-1.10.5.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
