@@ -28,8 +28,8 @@ public class Program4_3 extends JFrame implements GLEventListener {
 	private Matrix4f mvMat = new Matrix4f();
 	private int mvLoc, pLoc;
 	private float aspect;
-	private String vShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\vertShader.glsl";
-	private String fShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\fragShader.glsl";
+	private String vShaderSource = "vertShader.glsl";
+	private String fShaderSource = "fragShader.glsl";
 	private double elapsedTime, startTime, tf;
 
 	/** Constructor to setup the GUI for this Component */
@@ -85,7 +85,7 @@ public class Program4_3 extends JFrame implements GLEventListener {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		gl.glClear(GL_COLOR_BUFFER_BIT);
-		 gl.glEnable(GL_CULL_FACE);
+		gl.glEnable(GL_CULL_FACE);
 		gl.glUseProgram(renderingProgram);
 		// use system time to generate slowly-increasing sequence of floating-point
 		// values
@@ -116,7 +116,7 @@ public class Program4_3 extends JFrame implements GLEventListener {
 		gl.glEnableVertexAttribArray(0);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
-		gl.glFrontFace(GL_CW);  
+		gl.glFrontFace(GL_CW);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		// draw the pyramid (use buffer #1)
@@ -132,7 +132,7 @@ public class Program4_3 extends JFrame implements GLEventListener {
 		gl.glEnableVertexAttribArray(0);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
-		gl.glFrontFace(GL_CCW); 
+		gl.glFrontFace(GL_CCW);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 18);
 
 	}

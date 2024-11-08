@@ -28,8 +28,8 @@ public class Program4_4 extends JFrame implements GLEventListener {
 	private Matrix4f mvMat = new Matrix4f();
 	private int mvLoc, pLoc;
 	private float aspect;
-	private String vShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\vertShader.glsl";
-	private String fShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\fragShader.glsl";
+	private String vShaderSource = "vertShader.glsl";
+	private String fShaderSource = "fragShader.glsl";
 	private double elapsedTime, startTime, tf;
 	private Matrix4fStack mvStack = new Matrix4fStack(5);
 

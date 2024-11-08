@@ -27,8 +27,8 @@ public class Cube24 extends JFrame implements GLEventListener {
 	private Matrix4f mvMat = new Matrix4f();
 	private int vLoc, pLoc;
 	private float aspect;
-	private String vShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\vertShader24.glsl";
-	private String fShaderSource = "E:\\Workspace\\LEARN\\NLU\\ComputerGraphics\\JOGLTemplate\\src\\book\\fragShader24.glsl";
+	private String vShaderSource = "vertShader24.glsl";
+	private String fShaderSource = "fragShader24.glsl";
 	private double elapsedTime, startTime, tf, timeFactor;
 
 	/** Constructor to setup the GUI for this Component */
