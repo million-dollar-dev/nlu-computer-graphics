@@ -5,12 +5,25 @@ import com.jogamp.opengl.glu.GLU;
 import com.jogamp.opengl.util.texture.Texture;
 import com.jogamp.opengl.util.texture.TextureIO;
 
+import java.awt.Graphics2D;
+import java.awt.color.ColorSpace;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
+import java.awt.image.Raster;
+import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.Scanner;
 import java.util.Vector;
 
+import javax.imageio.ImageIO;
+
+import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLContext;
 
@@ -106,16 +119,68 @@ public class Utils {
 	public static int loadTexture(String textureFileName) {
 		Texture tex = null;
 		try {
-            InputStream stream = Utils.class.getClassLoader().getResourceAsStream("assets/" + textureFileName);
-            if (stream == null) {
-                throw new RuntimeException("File not found " + textureFileName);
-            }
-            tex = TextureIO.newTexture(stream, false, TextureIO.PNG); // Thay TextureIO.PNG bằng định dạng file phù hợp nếu cần
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+			InputStream stream = Utils.class.getClassLoader().getResourceAsStream("assets/" + textureFileName);
+			if (stream == null) {
+				throw new RuntimeException("File not found " + textureFileName);
+			}
+			tex = TextureIO.newTexture(stream, false, TextureIO.PNG); // Thay TextureIO.PNG bằng định dạng file phù hợp
+																		// nếu cần
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		int textureID = tex.getTextureObject();
 		return textureID;
+	}
+
+	public static int loadTextureAWT(String textureFileName) {
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		BufferedImage textureImage = getBufferedImage(textureFileName);
+		byte[] imgRGBA = getRGBAPixelData(textureImage, true);
+		ByteBuffer rgbaBuffer = Buffers.newDirectByteBuffer(imgRGBA);
+		int[] textureIDs = new int[1];
+		gl.glGenTextures(1, textureIDs, 0);
+		int textureID = textureIDs[0];
+		gl.glBindTexture(GL_TEXTURE_2D, textureID);
+		gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureImage.getWidth(), textureImage.getHeight(), 0, GL_RGBA,
+				GL_UNSIGNED_BYTE, rgbaBuffer);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		return textureID;
+	}
+
+	private static BufferedImage getBufferedImage(String fileName) {
+		BufferedImage img;
+		try {
+			img = ImageIO.read(new File(fileName));
+		} catch (IOException e) {
+			System.err.println("Error reading '" + fileName + '"');
+			throw new RuntimeException(e);
+		}
+		return img;
+	}
+
+	private static byte[] getRGBAPixelData(BufferedImage img, boolean flip) {
+		byte[] imgRGBA;
+		int height = img.getHeight(null);
+		int width = img.getWidth(null);
+		WritableRaster raster = Raster.createInterleavedRaster(DataBuffer.TYPE_BYTE, width, height, 4, null);
+		ComponentColorModel colorModel = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB),
+				new int[] { 8, 8, 8, 8 }, true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
+		// bits, has Alpha, isAlphaPreMultiplied
+		// transparency
+		// data transfer type
+		BufferedImage newImage = new BufferedImage(colorModel, raster, false, null);
+		Graphics2D g = newImage.createGraphics();
+		if (flip) {
+			AffineTransform gt = new AffineTransform();
+			gt.translate(0, height);
+			gt.scale(1, -1d);
+			g.transform(gt);
+		}
+		g.drawImage(img, null, null);
+		g.dispose();
+		DataBufferByte dataBuf = (DataBufferByte) raster.getDataBuffer();
+		imgRGBA = dataBuf.getData();
+		return imgRGBA;
 	}
 
 	public static void main(String[] args) {

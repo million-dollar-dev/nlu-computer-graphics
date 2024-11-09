@@ -56,8 +56,8 @@ public class Program5_1 extends JFrame implements GLEventListener {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		renderingProgram = Utils.createShaderProgram(vShaderSource, fShaderSource);
 		setupVertices();
-		cameraX = 0.0f;
-		cameraY = 0.0f;
+		cameraX = 1.0f;
+		cameraY = -4.0f;
 		cameraZ = 8.0f;
 		cubeLocX = 0.0f;
 		cubeLocY = -2.0f;
@@ -74,7 +74,6 @@ public class Program5_1 extends JFrame implements GLEventListener {
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
 		pMat.setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
 		brickTexture = Utils.loadTexture("brick1.png");
-		System.out.println(brickTexture);
 	}
 
 	/**
@@ -113,7 +112,7 @@ public class Program5_1 extends JFrame implements GLEventListener {
 
 		// build view matrix, model matrix, and model-view matrix
 		vMat.translation(-cameraX, -cameraY, -cameraZ);
-		
+
 		mMat.translation(pyraLocX, pyraLocY, pyraLocZ);
 		mvMat.identity();
 		mvMat.mul(vMat);
@@ -131,6 +130,8 @@ public class Program5_1 extends JFrame implements GLEventListener {
 		// activate texture unit #0 and bind it to the brick texture object
 		gl.glActiveTexture(GL_TEXTURE0);
 		gl.glBindTexture(GL_TEXTURE_2D, brickTexture);
+//		gl.glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+//		gl.glGenerateTextureMipmap(GL_TEXTURE_2D);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 18);
@@ -158,11 +159,11 @@ public class Program5_1 extends JFrame implements GLEventListener {
 		gl.glGenVertexArrays(vao.length, vao, 0);
 		gl.glBindVertexArray(vao[0]);
 		gl.glGenBuffers(vbo.length, vbo, 0);
-		
+
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		FloatBuffer pyrBuf = Buffers.newDirectFloatBuffer(pyramidPositions);
 		gl.glBufferData(GL_ARRAY_BUFFER, pyrBuf.limit() * 4, pyrBuf, GL_STATIC_DRAW);
-		
+
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		FloatBuffer pTexBuf = Buffers.newDirectFloatBuffer(pyrTextureCoordinates);
 		gl.glBufferData(GL_ARRAY_BUFFER, pTexBuf.limit() * 4, pTexBuf, GL_STATIC_DRAW);
@@ -170,45 +171,13 @@ public class Program5_1 extends JFrame implements GLEventListener {
 
 	/** The entry main() method to setup the top-level container and animator */
 	public static void main(String[] args) {
-//		// Run the GUI codes in the event-dispatching thread for thread safety
+		// Run the GUI codes in the event-dispatching thread for thread safety
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
 				new Program5_1();
 			}
 		});
-//				// Create the OpenGL rendering canvas
-//				GLJPanel canvas = new First3D();
-//				canvas.setPreferredSize(new Dimension(PANEL_WIDTH, PANEL_HEIGHT));
-//
-//				// Create a animator that drives canvas' display() at the specified FPS.
-//				final FPSAnimator animator = new FPSAnimator(canvas, FPS, true);
-//
-//				// Create the top-level container
-//				final JFrame frame = new JFrame(); // Swing's JFrame or AWT's Frame
-//				frame.getContentPane().add(canvas);
-//				frame.addWindowListener(new WindowAdapter() {
-//					@Override
-//					public void windowClosing(WindowEvent e) {
-//						// Use a dedicate thread to run the stop() to ensure that the
-//						// animator stops before program exits.
-//						new Thread() {
-//							@Override
-//							public void run() {
-//								if (animator.isStarted())
-//									animator.stop();
-//								System.exit(0);
-//							}
-//						}.start();
-//					}
-//				});
-//				frame.setTitle(TITLE);
-//				frame.pack();
-//				frame.setVisible(true);
-//				animator.start(); // start the animation loop
-//			}
-//		});
-
 	}
 
 }
