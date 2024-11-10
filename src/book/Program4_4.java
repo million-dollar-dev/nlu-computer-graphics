@@ -59,15 +59,16 @@ public class Program4_4 extends JFrame implements GLEventListener {
 		cameraX = 0.0f;
 		cameraY = 0.0f;
 		cameraZ = 8.0f;
+		pyraLocX = 2.0f;
+		pyraLocY = 2.0f;
+		pyraLocZ = -3.0f;
 		cubeLocX = 0.0f;
 		cubeLocY = -2.0f;
 		cubeLocZ = 0.0f;
-		pyraLocX = 3.0f;
-		pyraLocY = 3.0f;
-		pyraLocZ = -1.0f;
-//		pyraLocX = 2.0f;
-//		pyraLocY = 2.0f;
-//		pyraLocZ = -3.0f;
+//		pyraLocX = 3.0f;
+//		pyraLocY = 3.0f;
+//		pyraLocZ = -1.0f;
+
 		// build perspective matrix. This one has fovy=60, aspect ratio matches the
 		// screen window.
 		// Values for near and far clipping planes can vary as discussed in Section 4.9
@@ -110,22 +111,24 @@ public class Program4_4 extends JFrame implements GLEventListener {
 		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
 
 		// build view matrix, model matrix, and model-view matrix
-		// vMat.translation(-cameraX, -cameraY, -cameraZ);
-
+		//vMat.translation(-cameraX, -cameraY, -cameraZ);
+		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 		// push view matrix onto the stack
 		mvStack.pushMatrix();
 		mvStack.translate(-cameraX, -cameraY, -cameraZ);
 		// --------pyramid == sun -----------------
 		mvStack.pushMatrix();
-		mvStack.translate(0.0f, 0.0f, 0.0f); // sun's position
+		mvStack.translate(0.0f, 0.0f, 0.0f);
 		mvStack.pushMatrix();
-		mvStack.rotate((float) tf, 1.0f, 1.0f, 1.0f); // sun's rotation on its axis
+		mvStack.rotate((float) tf, 1.0f, 0.0f, 0.0f);
+		// sun’s position
+		// sun’s rotation on its axis
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
-		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
 		gl.glEnable(GL_DEPTH_TEST);
+
 		gl.glDepthFunc(GL_LEQUAL);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 18); // draw the sun
 		mvStack.popMatrix(); // remove the sun's axial rotation from the stack
@@ -134,27 +137,25 @@ public class Program4_4 extends JFrame implements GLEventListener {
 		mvStack.pushMatrix();
 		mvStack.translate((float) Math.sin(tf) * 4.0f, 0.0f, (float) Math.cos(tf) * 4.0f); // planet moves around sun
 		mvStack.pushMatrix();
-		mvStack.rotate((float) tf, 1.0f, 1.0f, 1.0f); // planet axis rotation
+		mvStack.rotate((float) tf, 0.0f, 1.0f, 0.0f);
+		// planet axis rotation
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
-		gl.glEnable(GL_DEPTH_TEST);
-		gl.glDepthFunc(GL_LEQUAL);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
+		// draw the planet
 		mvStack.popMatrix();
 
 		// -------- smaller cube == moon -----------------
 		mvStack.pushMatrix();
-		mvStack.translate(0.0f, (float) Math.sin(tf) * 2.0f, (float) Math.cos(tf) * 2.0f); // planet moves around sun
-		mvStack.rotate((float) tf, 1.0f, 1.0f, 1.0f); // planet axis rotation
+		mvStack.translate(0.0f, (float) Math.sin(tf) * 2.0f, (float) Math.cos(tf) * 2.0f); // moon moves around planet
+		mvStack.rotate((float) tf, 0.0f, 0.0f, 1.0f);
 		mvStack.scale(0.25f, 0.25f, 0.25f);
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvStack.get(vals));
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
-		gl.glEnable(GL_DEPTH_TEST);
-		gl.glDepthFunc(GL_LEQUAL);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		// remove moon scale/rotation/position, sun position and view matrices from
@@ -208,38 +209,6 @@ public class Program4_4 extends JFrame implements GLEventListener {
 				new Program4_4();
 			}
 		});
-//				// Create the OpenGL rendering canvas
-//				GLJPanel canvas = new First3D();
-//				canvas.setPreferredSize(new Dimension(PANEL_WIDTH, PANEL_HEIGHT));
-//
-//				// Create a animator that drives canvas' display() at the specified FPS.
-//				final FPSAnimator animator = new FPSAnimator(canvas, FPS, true);
-//
-//				// Create the top-level container
-//				final JFrame frame = new JFrame(); // Swing's JFrame or AWT's Frame
-//				frame.getContentPane().add(canvas);
-//				frame.addWindowListener(new WindowAdapter() {
-//					@Override
-//					public void windowClosing(WindowEvent e) {
-//						// Use a dedicate thread to run the stop() to ensure that the
-//						// animator stops before program exits.
-//						new Thread() {
-//							@Override
-//							public void run() {
-//								if (animator.isStarted())
-//									animator.stop();
-//								System.exit(0);
-//							}
-//						}.start();
-//					}
-//				});
-//				frame.setTitle(TITLE);
-//				frame.pack();
-//				frame.setVisible(true);
-//				animator.start(); // start the animation loop
-//			}
-//		});
-
 	}
 
 }
