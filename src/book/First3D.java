@@ -95,12 +95,12 @@ public class First3D extends JFrame implements GLEventListener {
 		// build view matrix, model matrix, and model-view matrix
 		vMat.translation(-cameraX, -cameraY, -cameraZ);
 		mMat.translation(cubeLocX, cubeLocY, cubeLocZ);
-		for (int i = 0; i < 24; i++) {
-			double x = tf + i;
-			mMat.identity();
-			mMat.translate((float) Math.sin(.35f * x) * 8.0f, (float) Math.sin(.52f * x) * 8.0f,
-					(float) Math.sin((.70f * x) * 8.0f));
-			mMat.rotateXYZ(1.75f * (float) x, 1.75f * (float) x, 1.75f * (float) x);
+//		for (int i = 0; i < 24; i++) {
+//			double x = tf + i;
+//			mMat.identity();
+//			mMat.translate((float) Math.sin(.35f * x) * 8.0f, (float) Math.sin(.52f * x) * 8.0f,
+//					(float) Math.sin((.70f * x) * 8.0f));
+//			mMat.rotateXYZ(1.75f * (float) x, 1.75f * (float) x, 1.75f * (float) x);
 //		mMat.identity();
 //		mMat.rotateXYZ(1.75f * (float) tf, 1.75f * (float) tf, 1.75f * (float) tf);
 //		mMat.translate((float) Math.sin(.35f * tf) * 2.0f, (float) Math.sin(.52f * tf) * 2.0f,
@@ -111,6 +111,7 @@ public class First3D extends JFrame implements GLEventListener {
 		mvMat.mul(mMat);
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+		
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(0);
@@ -118,7 +119,7 @@ public class First3D extends JFrame implements GLEventListener {
 		gl.glDepthFunc(GL_LEQUAL);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-	}
+//	}
 
 	/**
 	 * Called back before the OpenGL context is destroyed. Release resource such as

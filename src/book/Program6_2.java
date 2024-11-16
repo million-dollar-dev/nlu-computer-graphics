@@ -41,8 +41,6 @@ public class Program6_2 extends JFrame implements GLEventListener {
 	private float cameraRoll = 0.0f; // Góc nghiêng ngang của camera (thường không sử dụng nhiều)
 	private float cameraSpeed = 0.1f; // Tốc độ di chuyển của camera
 	private Vector3f cameraPosition = new Vector3f(0.0f, 0.0f, 8.0f); // Vị trí của camera
-	private Sphere mySphere;
-	private int numSphereVerts;
 	private Torus myTorus = new Torus(0.5f, 0.2f, 48);;
 	private int numTorusVertices, numTorusIndices;
 	private int brickTexture;
@@ -140,6 +138,9 @@ public class Program6_2 extends JFrame implements GLEventListener {
 		cameraY = 0.0f;
 		cameraZ = 8.0f;
 		brickTexture = Utils.loadTexture("brick1.png");
+		gl.glBindTexture(GL_TEXTURE_2D, brickTexture);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	}
 
 	/**
@@ -162,13 +163,6 @@ public class Program6_2 extends JFrame implements GLEventListener {
 		gl.glUseProgram(renderingProgram);
 		// use system time to generate slowly-increasing sequence of floating-point
 		// values
-		elapsedTime = System.currentTimeMillis() - startTime; // elapsedTime, startTime, and tf
-		tf = elapsedTime / 1000.0;
-		// would all be declared of type double.
-		// get references to the uniform variables for the MV and projection matrices
-
-		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");
-		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
 		// build perspective matrix. This one has fovy=60, aspect ratio matches the
 		// screen window.
 		// Values for near and far clipping planes can vary as discussed in Section 4.9
@@ -203,11 +197,11 @@ public class Program6_2 extends JFrame implements GLEventListener {
 		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 		gl.glActiveTexture(GL_TEXTURE0);
 		gl.glBindTexture(GL_TEXTURE_2D, brickTexture);
-		
+
 		gl.glEnableVertexAttribArray(2); // Vector pháp tuyến
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
 		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
-		
+
 		gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
 		gl.glDrawElements(GL_TRIANGLES, numTorusIndices, GL_UNSIGNED_INT, 0);
 
