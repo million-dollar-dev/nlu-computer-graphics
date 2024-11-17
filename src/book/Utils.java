@@ -301,8 +301,8 @@ public class Utils {
 	}
 
 	public static void main(String[] args) {
-		System.out.println(Utils.readShaderSource("vertShader5_1.glsl").toString());
-//		System.out.println(Utils.loadTexture("brick1.png"));
+//		System.out.println(Utils.readShaderSource("vertShader5_1.glsl").toString());
+		System.out.println(Utils.loadTexture("whale.png"));
 
 	}
 }
