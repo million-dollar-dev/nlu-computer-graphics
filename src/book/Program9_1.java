@@ -190,6 +190,7 @@ public class Program9_1 extends JFrame implements GLEventListener {
 		// Model-View matrix
 		mvMat.identity();
 		mvMat.mul(vMat).mul(mMat);
+		mvMat.scale(1000);
 
 		// Send matrices to shader
 		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");

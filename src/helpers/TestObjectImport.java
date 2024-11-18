@@ -42,7 +42,7 @@ public class TestObjectImport extends JFrame implements GLEventListener {
 	private float cameraYaw = 0.0f; // Góc quay trái/phải của camera
 	private float cameraPitch = 0.0f; // Góc quay lên/xuống của camera
 	private float cameraRoll = 0.0f; // Góc nghiêng ngang của camera (thường không sử dụng nhiều)
-	private float cameraSpeed = 0.1f; // Tốc độ di chuyển của camera
+	private float cameraSpeed = 1.1f; // Tốc độ di chuyển của camera
 	private Vector3f cameraPosition = new Vector3f(0.0f, 0.0f, 8.0f); // Vị trí của camera
 	private Torus myTorus = new Torus(0.5f, 0.2f, 48);;
 	private ImportedModel myModel;
@@ -137,7 +137,7 @@ public class TestObjectImport extends JFrame implements GLEventListener {
 	public void init(GLAutoDrawable drawable) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		renderingProgram = Utils.createShaderProgram(vShaderSource, fShaderSource);
-		myModel = new ImportedModel("complex_cube.obj");
+		myModel = new ImportedModel("whale.obj");
 		setupVertices();
 		cameraX = 0.0f;
 		cameraY = 0.0f;
@@ -265,9 +265,9 @@ public class TestObjectImport extends JFrame implements GLEventListener {
 		FloatBuffer norBuf = Buffers.newDirectFloatBuffer(nvalues);
 		gl.glBufferData(GL_ARRAY_BUFFER, norBuf.limit() * 4, norBuf, GL_STATIC_DRAW);
 		System.out.println(pvalues.length);
-		for (int i = 0; i < normals.length; i++) {
-			System.out.println(normals[i].toString());
-		}
+//		for (int i = 0; i < normals.length; i++) {
+//			System.out.println(normals[i].toString());
+//		}
 	}
 
 	/** The entry main() method to setup the top-level container and animator */

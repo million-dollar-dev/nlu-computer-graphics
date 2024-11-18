@@ -16,7 +16,7 @@ import helpers.Sphere;
 import helpers.Torus;
 
 import com.jogamp.common.nio.Buffers;
-import com.jogamp.opengl.GLContext;
+
 import org.joml.*;
 import java.nio.*;
 import javax.swing.*;
@@ -76,6 +76,7 @@ public class Program9_3 extends JFrame implements GLEventListener {
 					// Di chuyển camera theo hướng nhìn
 					cameraPosition.z -= cameraSpeed * Math.cos(Math.toRadians(cameraYaw));
 					cameraPosition.x -= cameraSpeed * Math.sin(Math.toRadians(cameraYaw));
+					System.out.println("wwww");
 					break;
 				case java.awt.event.KeyEvent.VK_S:
 					cameraPosition.z += cameraSpeed * Math.cos(Math.toRadians(cameraYaw));
@@ -172,6 +173,10 @@ public class Program9_3 extends JFrame implements GLEventListener {
 	 */
 	@Override
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		aspect = (float) width / (float) height;
+		gl.glViewport(0, 0, width, height);
+		pMat.identity().perspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
 	}
 
 	/**
@@ -183,6 +188,20 @@ public class Program9_3 extends JFrame implements GLEventListener {
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		gl.glClear(GL_COLOR_BUFFER_BIT);
 		gl.glEnable(GL_CULL_FACE);
+
+		// Update View Matrix
+		vMat.identity();
+		vMat.translate(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
+		vMat.rotateX((float) Math.toRadians(-cameraPitch));
+		vMat.rotateY((float) Math.toRadians(-cameraYaw));
+
+		// Model matrix (skybox at the center)
+		mMat.identity();
+
+		// Model-View matrix
+		mvMat.identity();
+		mvMat.mul(vMat).mul(mMat);
+		mvMat.scale(1000);
 
 		// Render Skybox
 		renderSkybox(gl);
@@ -287,6 +306,7 @@ public class Program9_3 extends JFrame implements GLEventListener {
 
 		// Xây dựng View matrix (chỉ áp dụng phép quay)
 		vMat.identity();
+		vMat.translate(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
 		vMat.rotateX((float) Math.toRadians(-cameraPitch));
 		vMat.rotateY((float) Math.toRadians(-cameraYaw));
 
@@ -296,7 +316,7 @@ public class Program9_3 extends JFrame implements GLEventListener {
 		// Tính toán Model-View matrix
 		mvMat.identity();
 		mvMat.mul(vMat).mul(mMat);
-
+		mvMat.scale(100);
 		// Gửi các ma trận tới shader
 		vLoc = gl.glGetUniformLocation(skyboxProgram, "v_matrix");
 		pLoc = gl.glGetUniformLocation(skyboxProgram, "p_matrix");
@@ -333,6 +353,8 @@ public class Program9_3 extends JFrame implements GLEventListener {
 		// Tính toán Model-View matrix
 		mvMat.identity();
 		mvMat.mul(vMat).mul(mMat);
+
+//		mvMat.scale(100);
 
 		// Gửi các ma trận tới shader
 		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");

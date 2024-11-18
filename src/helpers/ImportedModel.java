@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -77,9 +78,14 @@ public class ImportedModel {
 			while ((line = br.readLine()) != null) {
 
 				if (line.startsWith("vt")) { // texture coordinates ("vt" case)
-					System.out.println("vt: " + line);
-					for (String s : (line.substring(3)).trim().split("\\s+")) {
-						stVals.add(Float.valueOf(s)); // extract the texture coordinate values
+					String[] values = line.substring(3).trim().split("\\s+");
+					if (values.length >= 2) {
+						stVals.add(Float.valueOf(values[0])); // U
+						stVals.add(Float.valueOf(values[1])); // V
+					} else {
+						for (String s : values) {
+							stVals.add(Float.valueOf(s)); // extract the texture coordinate values
+						}
 					}
 				} else if (line.startsWith("vn")) { // vertex normals ("vn" case)
 					System.out.println("vn: " + line);
@@ -92,38 +98,76 @@ public class ImportedModel {
 					for (String s : (line.substring(2)).trim().split("\\s+")) {
 						vertVals.add(Float.valueOf(s)); // extract the vertex position values
 					}
-				} else if (line.startsWith("f")) // triangle faces ("f" case)
+				}
+//				else if (line.startsWith("f")) // triangle faces ("f" case)
+//				{
+//					System.out.println("f: " + line);
+//					for (String s : (line.substring(2)).trim().split("\\s+")) {
+//
+//						String[] indices = s.split("/");
+//
+//						String v = indices.length > 0 ? indices[0] : "0";
+//						String vt = indices.length > 1 ? indices[1] : "0";
+//						String vn = indices.length > 2 ? indices[2] : "0";
+//
+//						int vertRef = (Integer.valueOf(v) - 1) * 3;
+//						int tcRef = (Integer.valueOf(vt) - 1) * 2;
+//						int normRef = (Integer.valueOf(vn) - 1) * 3;
+//						triangleVerts.add(vertVals.get(vertRef)); // build array of vertices
+//						triangleVerts.add(vertVals.get(vertRef + 1));
+//						triangleVerts.add(vertVals.get(vertRef + 2));
+//						textureCoords.add(stVals.get(tcRef)); // build array of
+//						textureCoords.add(stVals.get(tcRef + 1)); // texture coordinates.
+//						normals.add(normVals.get(normRef)); // … and normals
+//						normals.add(normVals.get(normRef + 1));
+//						normals.add(normVals.get(normRef + 2));
+//					}
+//				}
+				else if (line.startsWith("f")) // triangle faces ("f" case)
 				{
-					System.out.println("f: " + line);
-					for (String s : (line.substring(2)).trim().split("\\s+")) {
+//				    System.out.println("f: " + line);
 
-						String[] indices = s.split("/");
+					// Tách các đỉnh của mặt
+					String[] vertices = (line.substring(2)).trim().split("\\s+");
 
-						String v = indices.length > 0 ? indices[0] : "0";
-						String vt = indices.length > 1 ? indices[1] : "0";
-						String vn = indices.length > 2 ? indices[2] : "0";
+					// Nếu là tứ giác (4 đỉnh)
+					if (vertices.length == 4) {
+						// Xử lý tam giác 1: (v1, v2, v3)
+						processFaceVertex(vertices[0], vertVals, stVals, normVals, triangleVerts, textureCoords,
+								normals);
+						processFaceVertex(vertices[1], vertVals, stVals, normVals, triangleVerts, textureCoords,
+								normals);
+						processFaceVertex(vertices[2], vertVals, stVals, normVals, triangleVerts, textureCoords,
+								normals);
 
-						int vertRef = (Integer.valueOf(v) - 1) * 3;
-						int tcRef = (Integer.valueOf(vt) - 1) * 2;
-						int normRef = (Integer.valueOf(vn) - 1) * 3;
-						triangleVerts.add(vertVals.get(vertRef)); // build array of vertices
-						triangleVerts.add(vertVals.get(vertRef + 1));
-						triangleVerts.add(vertVals.get(vertRef + 2));
-						textureCoords.add(stVals.get(tcRef)); // build array of
-						textureCoords.add(stVals.get(tcRef + 1)); // texture coordinates.
-						normals.add(normVals.get(normRef)); // … and normals
-						normals.add(normVals.get(normRef + 1));
-						normals.add(normVals.get(normRef + 2));
+						// Xử lý tam giác 2: (v1, v3, v4)
+						processFaceVertex(vertices[0], vertVals, stVals, normVals, triangleVerts, textureCoords,
+								normals);
+						processFaceVertex(vertices[2], vertVals, stVals, normVals, triangleVerts, textureCoords,
+								normals);
+						processFaceVertex(vertices[3], vertVals, stVals, normVals, triangleVerts, textureCoords,
+								normals);
+					}
+					// Nếu là tam giác (3 đỉnh)
+					else if (vertices.length == 3) {
+						processFaceVertex(vertices[0], vertVals, stVals, normVals, triangleVerts, textureCoords,
+								normals);
+						processFaceVertex(vertices[1], vertVals, stVals, normVals, triangleVerts, textureCoords,
+								normals);
+						processFaceVertex(vertices[2], vertVals, stVals, normVals, triangleVerts, textureCoords,
+								normals);
 					}
 				}
+
 			}
 			input.close();
-			System.out.println("----------triagle---------------");
-			triangleVerts.forEach(s -> System.out.println(s));
-			System.out.println("-----------texture--------------");
-			textureCoords.forEach(s -> System.out.println(s));
-			System.out.println("-----------normals--------------");
-			normals.forEach(s -> System.out.println(s));
+//			System.out.println("----------triagle---------------");
+//			triangleVerts.forEach(s -> System.out.println(s));
+//			System.out.println("-----------texture--------------");
+//			textureCoords.forEach(s -> System.out.println(s));
+//			System.out.println("-----------normals--------------");
+//			normals.forEach(s -> System.out.println(s));
+//			System.out.println(normVals.size());
 		}
 
 		// accessors for retrieving the number of vertices, the vertices themselves,
@@ -160,10 +204,39 @@ public class ImportedModel {
 			return n;
 		}
 
+		private void processFaceVertex(String vertex, List<Float> vertVals, List<Float> stVals, List<Float> normVals,
+				List<Float> triangleVerts, List<Float> textureCoords, List<Float> normals) {
+			String[] indices = vertex.split("/");
+
+			String v = indices.length > 0 ? indices[0] : "0";
+			String vt = indices.length > 1 ? indices[1] : "0";
+			String vn = indices.length > 2 ? indices[2] : "0";
+
+			int vertRef = (Integer.valueOf(v) - 1) * 3;
+			int tcRef = (Integer.valueOf(vt) - 1) * 2;
+			int normRef = (Integer.valueOf(vn) - 1) * 3;
+
+			triangleVerts.add(vertVals.get(vertRef)); // X, Y, Z
+			triangleVerts.add(vertVals.get(vertRef + 1));
+			triangleVerts.add(vertVals.get(vertRef + 2));
+
+			textureCoords.add(stVals.get(tcRef)); // U, V
+			textureCoords.add(stVals.get(tcRef + 1));
+
+			normals.add(normVals.get(normRef)); // Nx, Ny, Nz
+			normals.add(normVals.get(normRef + 1));
+			normals.add(normVals.get(normRef + 2));
+		}
+
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		ImportedModel model = new ImportedModel("complex_cube.obj");
+//		ImportedModel.ModelImporter imp = model.new ModelImporter();
+//		imp.parseOBJ("complex_cube.obj");
+//		for (float f: imp.getVertices()) {
+//			System.out.print(f + ", ");
+//		}
 //		System.out.println(model.getNumVertices());
 	}
 }

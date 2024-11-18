@@ -144,12 +144,12 @@ public class TestObjectImportWithTex extends JFrame implements GLEventListener {
 	public void init(GLAutoDrawable drawable) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		renderingProgram = Utils.createShaderProgram(vShaderSource, fShaderSource);
-		myModel = new ImportedModel("whale.obj");
+		myModel = new ImportedModel("turtle.obj");
 		setupVertices();
 		cameraX = 0.0f;
 		cameraY = 0.0f;
 		cameraZ = 8.0f;
-		texture = Utils.loadTexture("whale.png");
+		texture = Utils.loadTexture("turtle.png");
 //		System.out.println(texture);
 //		gl.glBindTexture(GL_TEXTURE_2D, texture);
 //		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -189,22 +189,22 @@ public class TestObjectImportWithTex extends JFrame implements GLEventListener {
 		vMat.rotateX((float) Math.toRadians(-cameraPitch));
 		vMat.rotateY((float) Math.toRadians(-cameraYaw));
 		vMat.translate(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
-
+		
 		// Model matrix (skybox at the center)
 		mMat.identity();
-
+		mMat.rotateX((float) Math.toRadians(-90));
 		// Model-View matrix
 		mvMat.identity();
 		mvMat.mul(vMat).mul(mMat);
-
+		mvMat.scale(0.0075f);
 		// Send matrices to shader
 		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");
 		pLoc = gl.glGetUniformLocation(renderingProgram, "p_matrix");
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 
-		mvMat.scale(0.5f, 0.5f, 0.5f);
-
+		
+	
 //		mvMat.identity();
 //		mvMat.mul(vMat);
 //		mvMat.mul(mMat);
