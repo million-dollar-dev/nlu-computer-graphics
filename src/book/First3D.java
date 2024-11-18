@@ -139,6 +139,9 @@ public class First3D extends JFrame implements GLEventListener {
 				-1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
 				1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
 				-1.0f };
+		for (float f: vertexPositions) {
+			System.out.print(f + ", ");
+		}
 		gl.glGenVertexArrays(vao.length, vao, 0);
 		gl.glBindVertexArray(vao[0]);
 		gl.glGenBuffers(vbo.length, vbo, 0);

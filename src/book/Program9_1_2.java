@@ -296,7 +296,7 @@ public class Program9_1_2 extends JFrame implements GLEventListener {
 		// Tính toán Model-View matrix
 		mvMat.identity();
 		mvMat.mul(vMat).mul(mMat);
-
+		mvMat.scale(100);
 		// Gửi các ma trận tới shader
 		mvLoc = gl.glGetUniformLocation(skyboxProgram, "mv_matrix");
 		pLoc = gl.glGetUniformLocation(skyboxProgram, "p_matrix");

@@ -17,5 +17,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/joml-1.10.5.jar"/>
+	<classpathentry kind="lib" path="lib/obj-0.2.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
