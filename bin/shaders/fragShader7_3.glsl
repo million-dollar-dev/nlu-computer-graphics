@@ -2,6 +2,7 @@
 in vec3 varyingNormal;
 in vec3 varyingLightDir;
 in vec3 varyingVertPos;
+in vec3 varyingHalfVector;
 out vec4 fragColor;
 struct PositionalLight
 { 
@@ -30,12 +31,13 @@ void main(void)
  vec3 L = normalize(varyingLightDir);
  vec3 N = normalize(varyingNormal);
  vec3 V = normalize(-v_matrix[3].xyz - varyingVertPos);
+ vec3 H = normalize(varyingHalfVector);
  // compute light reflection vector with respect to N:
  vec3 R = normalize(reflect(-L, N));
  // get the angle between the light and surface normal:
  float cosTheta = dot(L,N);
  // angle between the view vector and reflected light:
- float cosPhi = dot(V,R);
+ float cosPhi = dot(H,N);
  // compute ADS contributions (per pixel), and combine to build output color:
  vec3 ambient = ((globalAmbient * material.ambient) + (light.ambient * material.ambient)).xyz;
  vec3 diffuse = light.diffuse.xyz * material.diffuse.xyz * max(cosTheta,0.0);

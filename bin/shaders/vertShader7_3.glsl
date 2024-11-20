@@ -4,6 +4,7 @@ layout (location=1) in vec3 vertNormal;
 out vec3 varyingNormal;
 out vec3 varyingLightDir;
 out vec3 varyingVertPos;
+out vec3 varyingHalfVector;
 struct PositionalLight
 { 
 vec4 ambient;  
@@ -27,6 +28,7 @@ uniform mat4 p_matrix;
 uniform mat4 norm_matrix;   // for transforming normals
 void main(void)
 { 
+ varyingHalfVector = normalize(normalize(varyingLightDir) + normalize(-varyingVertPos)).xyz;
  varyingVertPos=(m_matrix * vec4(vertPos,1.0)).xyz;
  varyingLightDir = light.position - varyingVertPos;
  varyingNormal=(norm_matrix * vec4(vertNormal,1.0)).xyz;
