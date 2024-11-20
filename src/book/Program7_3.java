@@ -29,14 +29,12 @@ public class Program7_3 extends JFrame implements GLEventListener {
 	private Matrix4f vMat = new Matrix4f();
 	private Matrix4f mMat = new Matrix4f();
 	private Matrix4f mvMat = new Matrix4f();
-	private Matrix4f invTrMat = new Matrix4f();
+	
 	private int mvLoc, pLoc, mLoc, nLoc, vLoc;
-	private int globalAmbLoc, ambLoc, diffLoc, specLoc, posLoc, mAmbLoc, mDiffLoc, mSpecLoc, mShiLoc;
 	private float aspect;
-	private String vShaderSource = "vertShader7_2.glsl";
-	private String fShaderSource = "fragShader7_2.glsl";
-	private Vector3f currentLightPos = new Vector3f(); // current light position as Vector3f
-	private float[] lightPos = new float[3]; // current light position as float array
+	private String vShaderSource = "vertShader7_3.glsl";
+	private String fShaderSource = "fragShader7_3.glsl";
+	
 	// Camera
 	private float cameraYaw = 0.0f; // Góc quay trái/phải của camera
 	private float cameraPitch = 0.0f; // Góc quay lên/xuống của camera
@@ -57,10 +55,14 @@ public class Program7_3 extends JFrame implements GLEventListener {
 	float[] lightDiffuse = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
 	float[] lightSpecular = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
 	// gold material properties
-	float[] matAmb = Utils.bronzeAmbient();
-	float[] matDif = Utils.bronzeAmbient();
-	float[] matSpe = Utils.bronzeAmbient();
-	float matShi = Utils.bronzeShininess();
+	float[] matAmb = Utils.waterAmbient();
+	float[] matDif = Utils.waterAmbient();
+	float[] matSpe = Utils.waterAmbient();
+	float matShi = Utils.waterShininess();
+	private int globalAmbLoc, ambLoc, diffLoc, specLoc, posLoc, mAmbLoc, mDiffLoc, mSpecLoc, mShiLoc;
+	private Vector3f currentLightPos = new Vector3f(); // current light position as Vector3f
+	private float[] lightPos = new float[3]; // current light position as float array
+	private Matrix4f invTrMat = new Matrix4f();
 
 	/** Constructor to setup the GUI for this Component */
 	public Program7_3() {
@@ -126,6 +128,7 @@ public class Program7_3 extends JFrame implements GLEventListener {
 		        	initialLightLoc.z -= lightSpeed * Math.sin(Math.toRadians(lightYaw));
 		            break;
 				}
+				System.out.println(initialLightLoc.toString());
 			}
 		});
 		// camera
@@ -233,7 +236,7 @@ public class Program7_3 extends JFrame implements GLEventListener {
 		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 
 		gl.glEnableVertexAttribArray(2); // Vector pháp tuyến
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+		//gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
 		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
 
 		gl.glEnable(GL_CULL_FACE);

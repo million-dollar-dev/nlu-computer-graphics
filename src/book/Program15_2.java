@@ -35,7 +35,7 @@ public class Program15_2 extends JFrame implements GLEventListener {
 	private Matrix4f vMat = new Matrix4f();
 	private Matrix4f mMat = new Matrix4f();
 	private Matrix4f mvMat = new Matrix4f();
-	private int mvLoc, pLoc, vLoc, mLoc;
+	private int mvLoc, pLoc, vLoc, mLoc, nLoc;
 	private float aspect;
 	private String vShaderSource = "vertShader5_1.glsl";
 	private String fShaderSource = "fragShader5_1.glsl";
@@ -45,6 +45,7 @@ public class Program15_2 extends JFrame implements GLEventListener {
 	private float cameraRoll = 0.0f; // Góc nghiêng ngang của camera (thường không sử dụng nhiều)
 	private float cameraSpeed = 0.1f; // Tốc độ di chuyển của camera
 	private Vector3f cameraPosition = new Vector3f(0.0f, 0.0f, 0.0f); // Vị trí của camera
+	
 	private Torus myTorus = new Torus(0.5f, 0.2f, 48);;
 	private int numTorusVertices, numTorusIndices;
 	private int brickTexture, skyboxTexture;
@@ -52,6 +53,25 @@ public class Program15_2 extends JFrame implements GLEventListener {
 	private float cameraHeight = 2.0f;
 	private float surfacePlaneHeight = 0.0f;
 	private float floorPlaneHeight = -10.0f;
+
+	// initial light location
+	private Vector3f initialLightLoc = new Vector3f(2.0f, 2.0f, 2.0f);
+	private float lightSpeed = 0.1f; // Tốc độ di chuyển nguồn sáng
+	private float lightYaw = 0.0f; // Góc xoay quanh trục Y (theo chiều ngang)
+	// properties of white light (global and positional) used in this scene
+	float[] globalAmbient = new float[] { 0.2f, 0.2f, 0.2f, 1.0f };
+	float[] lightAmbient = new float[] { 0.3f, 0.3f, 0.3f, 1.0f };
+	float[] lightDiffuse = new float[] { 1.0f, 1.0f, 0.9f, 1.0f };
+	float[] lightSpecular = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
+	// gold material properties
+	float[] matAmb = Utils.waterAmbient();
+	float[] matDif = Utils.waterAmbient();
+	float[] matSpe = Utils.waterAmbient();
+	float matShi = Utils.waterShininess();
+	private int globalAmbLoc, ambLoc, diffLoc, specLoc, posLoc, mAmbLoc, mDiffLoc, mSpecLoc, mShiLoc;
+	private Vector3f currentLightPos = new Vector3f(); // current light position as Vector3f
+	private float[] lightPos = new float[3]; // current light position as float array
+	private Matrix4f invTrMat = new Matrix4f();
 
 	/** Constructor to setup the GUI for this Component */
 	public Program15_2() {
@@ -103,7 +123,23 @@ public class Program15_2 extends JFrame implements GLEventListener {
 				case java.awt.event.KeyEvent.VK_E:
 					cameraPosition.y -= cameraSpeed; // Di chuyển xuống dưới
 					break;
+				case java.awt.event.KeyEvent.VK_I: // Di chuyển nguồn sáng lên (trục Y tăng)
+					initialLightLoc.y += lightSpeed;
+					break;
+				case java.awt.event.KeyEvent.VK_K: // Di chuyển nguồn sáng xuống (trục Y giảm)
+					initialLightLoc.y -= lightSpeed;
+					break;
+				case java.awt.event.KeyEvent.VK_J: // Di chuyển nguồn sáng sang trái (trục X giảm)
+					initialLightLoc.x -= lightSpeed * Math.cos(Math.toRadians(lightYaw));
+					initialLightLoc.z += lightSpeed * Math.sin(Math.toRadians(lightYaw));
+					break;
+				case java.awt.event.KeyEvent.VK_L: // Di chuyển nguồn sáng sang phải (trục X tăng)
+					initialLightLoc.x += lightSpeed * Math.cos(Math.toRadians(lightYaw));
+					initialLightLoc.z -= lightSpeed * Math.sin(Math.toRadians(lightYaw));
+					break;
 				}
+
+				System.out.println("camera y: " + cameraPosition.y + " / " + surfacePlaneHeight);
 			}
 		});
 		// camera
@@ -145,7 +181,7 @@ public class Program15_2 extends JFrame implements GLEventListener {
 		renderingProgram = Utils.createShaderProgram(vShaderSource, fShaderSource);
 		skyboxProgram = Utils.createShaderProgram("vertShader9_2.glsl", "fragShader9_2.glsl");
 		planeProgram = Utils.createShaderProgram(vShaderSource, "fragShader15_1.glsl");
-		surfaceProgram = Utils.createShaderProgram(vShaderSource, "fragRunSuc.glsl");
+		surfaceProgram = Utils.createShaderProgram("vertShader7_3.glsl", "fragShader7_3.glsl");
 		setupVertices();
 		// Camera position
 		cameraX = 0.0f;
@@ -171,6 +207,7 @@ public class Program15_2 extends JFrame implements GLEventListener {
 		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		skyboxTexture = Utils.loadCubeMap("assets");
 		gl.glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		System.out.println(cameraPosition.y);
 
 	}
 
@@ -211,7 +248,7 @@ public class Program15_2 extends JFrame implements GLEventListener {
 		mvMat.scale(1);
 
 		// Render Skybox
-		// renderSkybox(gl);
+		renderSkybox(gl);
 
 		renderPlane(gl);
 		// Render Torus
@@ -333,90 +370,102 @@ public class Program15_2 extends JFrame implements GLEventListener {
 	}
 
 	private void renderPlane(GL4 gl) {
-		vMat.translation(0.0f, -cameraHeight, 0.0f);
-		gl.glUseProgram(surfaceProgram);
-		mMat.identity();
-		mMat.translation(0, surfacePlaneHeight, 0);
-		mvMat.identity();
-		mvMat.mul(vMat).mul(mMat);
+		// Chuẩn bị ma trận View và Projection (tính một lần cho cả hai mặt)
 		vMat.identity();
 		vMat.translate(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
 		vMat.rotateX((float) Math.toRadians(-cameraPitch));
 		vMat.rotateY((float) Math.toRadians(-cameraYaw));
-		// Gửi các ma trận tới shader
+
+		// Gửi View và Projection matrices đến Shader (tính chung cho cả hai mặt)
+		gl.glUseProgram(surfaceProgram); // Bắt đầu với mặt nước
 		vLoc = gl.glGetUniformLocation(surfaceProgram, "v_matrix");
-		mLoc = gl.glGetUniformLocation(surfaceProgram, "m_matrix");
 		pLoc = gl.glGetUniformLocation(surfaceProgram, "p_matrix");
-		mvLoc = gl.glGetUniformLocation(surfaceProgram, "mv_matrix");
 		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+
+		// ========================
+		// Vẽ mặt nước (Surface)
+		// ========================
+		gl.glUseProgram(surfaceProgram); // Sử dụng shader riêng cho mặt nước
+
+		// Cập nhật Model và Model-View matrices
+		mMat.identity();
+		mMat.translation(0, 0, 0);
+		mvMat.identity();
+		mvMat.mul(vMat).mul(mMat);
+		mvLoc = gl.glGetUniformLocation(surfaceProgram, "mv_matrix");
+		mLoc = gl.glGetUniformLocation(surfaceProgram, "m_matrix");
+		nLoc = gl.glGetUniformLocation(surfaceProgram, "norm_matrix");
+		// set up lights
+		currentLightPos.set(initialLightLoc);
+		installLights();
+		// build the inverse-transpose of the MV matrix, for transforming normal vectors
+		mMat.invert(invTrMat);
+		invTrMat.transpose(invTrMat);
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
+		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
+		// Điều chỉnh chiều hiển thị (Winding Order)
+		if (cameraPosition.y >= surfacePlaneHeight) {
+			gl.glFrontFace(GL_CCW); // Camera trên mặt nước
+		} else {
+			gl.glFrontFace(GL_CW); // Camera dưới mặt nước
+		}
 
-		// Gắn VAO và VBO của skybox
+		// Thiết lập VAO/VBO
 		gl.glBindVertexArray(vao[2]);
-		// set up vertices buffer for cube (buffer for texture coordinates not
-		// necessary)
-		gl.glEnableVertexAttribArray(0);
+		gl.glEnableVertexAttribArray(0); // Vertex positions
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
-		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0); // 3 components per vertex (x, y, z)
+		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 
-		// Enable texture coordinates
-		gl.glEnableVertexAttribArray(1);
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[7]); // Bind the texture coordinate buffer
-		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0); // 2 components per texture coordinate (u, v)
+		gl.glEnableVertexAttribArray(1); // Texture coordinates
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[7]);
+		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 
-		gl.glEnableVertexAttribArray(2);
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[8]); // also send normals for lighting
+		gl.glEnableVertexAttribArray(2); // Normals
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[8]);
 		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
-
-		if (cameraPosition.y >= surfacePlaneHeight)
-			gl.glFrontFace(GL_CCW);
-		else
-			gl.glFrontFace(GL_CW);
-
+		gl.glEnable(GL_DEPTH_TEST);
+		gl.glDepthFunc(GL_LEQUAL);
+		// Vẽ mặt nước
 		gl.glDrawArrays(GL_TRIANGLES, 0, 6);
 
-		// -----------------------------------------------------------
-		gl.glUseProgram(planeProgram);
+		// ========================
+		// Vẽ mặt sàn (Floor)
+		// ========================
+		gl.glUseProgram(planeProgram); // Chuyển sang shader riêng cho sàn
+		// Cập nhật Model và Model-View matrices
 		mMat.identity();
 		mMat.translation(0, floorPlaneHeight, 0);
 		mvMat.identity();
 		mvMat.mul(vMat).mul(mMat);
-		vMat.identity();
-		vMat.translate(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
-		vMat.rotateX((float) Math.toRadians(-cameraPitch));
-		vMat.rotateY((float) Math.toRadians(-cameraYaw));
-		// Gửi các ma trận tới shader
-		vLoc = gl.glGetUniformLocation(planeProgram, "v_matrix");
-		mLoc = gl.glGetUniformLocation(planeProgram, "m_matrix");
-		pLoc = gl.glGetUniformLocation(planeProgram, "p_matrix");
 		mvLoc = gl.glGetUniformLocation(planeProgram, "mv_matrix");
+		mLoc = gl.glGetUniformLocation(planeProgram, "m_matrix");
+		vLoc = gl.glGetUniformLocation(planeProgram, "v_matrix");
+		pLoc = gl.glGetUniformLocation(planeProgram, "p_matrix");
 		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
 
-		// Gắn VAO và VBO của skybox
+		// Thiết lập VAO/VBO
 		gl.glBindVertexArray(vao[2]);
-		// set up vertices buffer for cube (buffer for texture coordinates not
-		// necessary)
-		gl.glEnableVertexAttribArray(0);
+		gl.glEnableVertexAttribArray(0); // Vertex positions
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
-		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0); // 3 components per vertex (x, y, z)
+		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 
-		// Enable texture coordinates
-		gl.glEnableVertexAttribArray(1);
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[7]); // Bind the texture coordinate buffer
-		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0); // 2 components per texture coordinate (u, v)
+		gl.glEnableVertexAttribArray(1); // Texture coordinates
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[7]);
+		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 
-		gl.glEnableVertexAttribArray(2);
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[8]); // also send normals for lighting
+		gl.glEnableVertexAttribArray(2); // Normals
+		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[8]);
 		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
-
+		// Chiều hiển thị luôn CCW cho mặt sàn
 		gl.glFrontFace(GL_CCW);
-		gl.glDrawArrays(GL_TRIANGLES, 0, 6);
-
+		// Vẽ mặt sàn
+		//if (cameraPosition.y < surfacePlaneHeight)
+			gl.glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 
 	private void renderSkybox(GL4 gl) {
@@ -466,7 +515,7 @@ public class Program15_2 extends JFrame implements GLEventListener {
 
 		// Model matrix của torus (vị trí và kích thước)
 		mMat.identity();
-		mMat.translate(0.0f, -0.2f, -0.7f); // Dịch torus bên trong skybox
+		mMat.translate(0.0f, 0.0f, -0.7f); // Dịch torus bên trong skybox
 		mMat.scale(0.2f, 0.2f, 0.2f); // Thu nhỏ torus
 
 		// Tính toán Model-View matrix
@@ -500,6 +549,35 @@ public class Program15_2 extends JFrame implements GLEventListener {
 		// Vẽ torus
 		gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
 		gl.glDrawElements(GL_TRIANGLES, numTorusIndices, GL_UNSIGNED_INT, 0);
+	}
+
+	private void installLights() {
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		// save the light position in a float array
+		lightPos[0] = currentLightPos.x();
+		lightPos[1] = currentLightPos.y();
+		lightPos[2] = currentLightPos.z();
+		// get the locations of the light and material fields in the shader
+		globalAmbLoc = gl.glGetUniformLocation(surfaceProgram, "globalAmbient");
+		ambLoc = gl.glGetUniformLocation(surfaceProgram, "light.ambient");
+		diffLoc = gl.glGetUniformLocation(surfaceProgram, "light.diffuse");
+		specLoc = gl.glGetUniformLocation(surfaceProgram, "light.specular");
+		posLoc = gl.glGetUniformLocation(surfaceProgram, "light.position");
+		mAmbLoc = gl.glGetUniformLocation(surfaceProgram, "material.ambient");
+		mDiffLoc = gl.glGetUniformLocation(surfaceProgram, "material.diffuse");
+		mSpecLoc = gl.glGetUniformLocation(surfaceProgram, "material.specular");
+		mShiLoc = gl.glGetUniformLocation(surfaceProgram, "material.shininess");
+
+		// set the uniform light and material values in the shader
+		gl.glProgramUniform4fv(surfaceProgram, globalAmbLoc, 1, globalAmbient, 0);
+		gl.glProgramUniform4fv(surfaceProgram, ambLoc, 1, lightAmbient, 0);
+		gl.glProgramUniform4fv(surfaceProgram, diffLoc, 1, lightDiffuse, 0);
+		gl.glProgramUniform4fv(surfaceProgram, specLoc, 1, lightSpecular, 0);
+		gl.glProgramUniform3fv(surfaceProgram, posLoc, 1, lightPos, 0);
+		gl.glProgramUniform4fv(surfaceProgram, mAmbLoc, 1, matAmb, 0);
+		gl.glProgramUniform4fv(surfaceProgram, mDiffLoc, 1, matDif, 0);
+		gl.glProgramUniform4fv(surfaceProgram, mSpecLoc, 1, matSpe, 0);
+		gl.glProgramUniform1f(surfaceProgram, mShiLoc, matShi);
 	}
 
 	/** The entry main() method to setup the top-level container and animator */

@@ -351,6 +351,23 @@ public class Utils {
 		return 25.6f;
 	}
 
+	// Water material - ambient, diffuse, specular, and shininess
+	public static float[] waterAmbient() {
+		return (new float[] { 0.1f, 0.2f, 0.4f });
+	}
+
+	public static float[] waterDiffuse() {
+		return (new float[] { 1.0f, 1.0f, 1.0f });
+	}
+
+	public static float[] waterSpecular() {
+		return (new float[] { 0.8f, 0.9f, 1.0f });
+	}
+
+	public static float waterShininess() {
+		return 128.0f;
+	}
+
 	public static void main(String[] args) {
 //		System.out.println(Utils.readShaderSource("vertShader5_1.glsl").toString());
 		System.out.println(Utils.loadTexture("whale.png"));
