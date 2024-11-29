@@ -1,6 +1,8 @@
 package book;
 
 import static com.jogamp.opengl.GL.GL_ARRAY_BUFFER;
+import static com.jogamp.opengl.GL.GL_CCW;
+import static com.jogamp.opengl.GL.GL_CW;
 import static com.jogamp.opengl.GL.GL_DEPTH_TEST;
 import static com.jogamp.opengl.GL.GL_FLOAT;
 import static com.jogamp.opengl.GL.GL_LEQUAL;
@@ -77,7 +79,11 @@ public class Program15_3 extends JFrame implements GLEventListener {
 	// phản chiếu
 	private int[] bufferId = new int[2];
 	private int reflectFrameBuffer, refractFrameBuffer;
-	private int reflectTextureId;
+	private int reflectTextureId, refractTextureId;
+	private int aboveLoc;
+
+	// wave
+	
 
 	/** Constructor to setup the GUI for this Component */
 	public Program15_3() {
@@ -187,8 +193,10 @@ public class Program15_3 extends JFrame implements GLEventListener {
 		renderingProgram = Utils.createShaderProgram(vShaderSource, fShaderSource);
 		skyboxProgram = Utils.createShaderProgram("vertShader9_2.glsl", "fragShader9_2.glsl");
 		planeProgram = Utils.createShaderProgram(vShaderSource, "fragShader15_1.glsl");
-		renderingProgramSURFACE = Utils.createShaderProgram("vertShader7_3.glsl", "fragShader7_3.glsl");
-		renderingProgramFLOOR = Utils.createShaderProgram("vertShader15_3.glsl", "fragShader15_3.glsl");
+//		renderingProgramFLOOR = Utils.createShaderProgram("vertShader15_3_Surface.glsl",
+//				"fragShader15_3_Surface.glsl");
+		renderingProgramSURFACE = Utils.createShaderProgram("vertShader15_3.glsl", "fragShader15_3.glsl");
+		renderingProgramFLOOR = Utils.createShaderProgram("vertShader5_1.glsl", "fragShader15_1.glsl");
 		renderingProgramCubeMap = Utils.createShaderProgram("vertShader9_2.glsl", "fragShader9_2.glsl");
 		setupVertices();
 		// Camera position
@@ -237,8 +245,49 @@ public class Program15_3 extends JFrame implements GLEventListener {
 	@Override
 	public void display(GLAutoDrawable drawable) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
-		gl.glClear(GL_DEPTH_BUFFER_BIT);
-		gl.glClear(GL_COLOR_BUFFER_BIT);
+
+		// -------------------- Render Reflection Scene --------------------
+		if (cameraPosition.y >= surfacePlaneHeight) {
+			vMat.identity();
+			vMat.translate(0.0f, cameraPosition.y - surfacePlaneHeight, 0.0f);
+			vMat.rotateX((float) Math.toRadians(-cameraPitch));
+
+			gl.glBindFramebuffer(GL_FRAMEBUFFER, reflectFrameBuffer);
+			gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			prepForSkyBoxRender();
+			gl.glEnable(GL_CULL_FACE);
+			gl.glFrontFace(GL_CCW); // Inside view of the skybox
+			gl.glDisable(GL_DEPTH_TEST);
+			gl.glDrawArrays(GL_TRIANGLES, 0, 36);
+			gl.glEnable(GL_DEPTH_TEST);
+		}
+
+		// -------------------- Render Refraction Scene --------------------
+		vMat.identity();
+		vMat.translate(0.0f, -cameraPosition.y, 0.0f);
+		vMat.rotateX((float) Math.toRadians(cameraPitch));
+
+		gl.glBindFramebuffer(GL_FRAMEBUFFER, refractFrameBuffer);
+		gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		if (cameraPosition.y >= surfacePlaneHeight) {
+			prepForFloorRender();
+			gl.glEnable(GL_DEPTH_TEST);
+			gl.glDepthFunc(GL_LEQUAL);
+			gl.glDrawArrays(GL_TRIANGLES, 0, 6);
+		} else {
+			prepForSkyBoxRender();
+			gl.glEnable(GL_CULL_FACE);
+			gl.glFrontFace(GL_CCW); // Inside view of the skybox
+			gl.glDisable(GL_DEPTH_TEST);
+			gl.glDrawArrays(GL_TRIANGLES, 0, 36);
+			gl.glEnable(GL_DEPTH_TEST);
+		}
+
+		// -------------------- Render Final Scene --------------------
+		gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		gl.glEnable(GL_CULL_FACE);
 
 		// Update View Matrix
@@ -247,72 +296,40 @@ public class Program15_3 extends JFrame implements GLEventListener {
 		vMat.rotateX((float) Math.toRadians(-cameraPitch));
 		vMat.rotateY((float) Math.toRadians(-cameraYaw));
 
-		// Model matrix (skybox at the center)
-		mMat.identity();
-
-		// Model-View matrix
-		mvMat.identity();
-		mvMat.mul(vMat).mul(mMat);
-		mvMat.scale(1);
-
-		gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		// draw cube map – most of the code moved to the "prepForSkyBoxRender()"
-		// function
+		// Render Skybox
 		prepForSkyBoxRender();
 		gl.glEnable(GL_CULL_FACE);
-		gl.glFrontFace(GL_CCW); // cube is CW, but we are viewing the inside
+		gl.glFrontFace(GL_CCW); // Inside view of the skybox
 		gl.glDisable(GL_DEPTH_TEST);
-		//gl.glDrawArrays(GL_TRIANGLES, 0, 36);
+		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
 		gl.glEnable(GL_DEPTH_TEST);
-		// draw water top (surface) – most of the code moved to
-		// "prepForTopSurfaceRender()" function
+
+		// Render Water Surface
 		prepForTopSurfaceRender();
+		gl.glActiveTexture(GL_TEXTURE0);
+		gl.glBindTexture(GL_TEXTURE_2D, reflectTextureId);
+		gl.glActiveTexture(GL_TEXTURE1);
+		gl.glBindTexture(GL_TEXTURE_2D, refractTextureId);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
-		if (cameraHeight >= surfacePlaneHeight)
-			gl.glFrontFace(GL_CCW);
-		else
-			gl.glFrontFace(GL_CW);
+//	    gl.glFrontFace(GL_CCW);
+		if (cameraPosition.y >= surfacePlaneHeight) {
+			gl.glFrontFace(GL_CCW); // Camera trên mặt nước
+		} else {
+			gl.glFrontFace(GL_CW); // Camera dưới mặt nước
+		}
 		gl.glDrawArrays(GL_TRIANGLES, 0, 6);
-		// draw water bottom (floor) – most of the code moved to "prepForFloorRender()"
-		// function
+
+		// Render Floor
 		prepForFloorRender();
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
 		gl.glFrontFace(GL_CCW);
 		gl.glDrawArrays(GL_TRIANGLES, 0, 6);
-		
+
+		// Render Torus
 		renderTorus(gl);
 	}
-//	@Override
-//	public void display(GLAutoDrawable drawable) {
-//		GL4 gl = (GL4) GLContext.getCurrentGL();
-//		gl.glClear(GL_DEPTH_BUFFER_BIT);
-//		gl.glClear(GL_COLOR_BUFFER_BIT);
-//		gl.glEnable(GL_CULL_FACE);
-//		
-//		// Update View Matrix
-//		vMat.identity();
-//		vMat.translate(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
-//		vMat.rotateX((float) Math.toRadians(-cameraPitch));
-//		vMat.rotateY((float) Math.toRadians(-cameraYaw));
-//		
-//		// Model matrix (skybox at the center)
-//		mMat.identity();
-//		
-//		// Model-View matrix
-//		mvMat.identity();
-//		mvMat.mul(vMat).mul(mMat);
-//		mvMat.scale(1);
-//		
-//		// Render Skybox
-//		renderSkybox(gl);
-//		
-//		renderPlane(gl);
-//		// Render Torus
-//		renderTorus(gl);
-//		
-//	}
 
 	/**
 	 * Called back before the OpenGL context is destroyed. Release resource such as
@@ -427,146 +444,6 @@ public class Program15_3 extends JFrame implements GLEventListener {
 
 	}
 
-	private void renderPlane(GL4 gl) {
-		// Chuẩn bị ma trận View và Projection (tính một lần cho cả hai mặt)
-		vMat.identity();
-		vMat.translate(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
-		vMat.rotateX((float) Math.toRadians(-cameraPitch));
-		vMat.rotateY((float) Math.toRadians(-cameraYaw));
-
-		// Gửi View và Projection matrices đến Shader (tính chung cho cả hai mặt)
-		gl.glUseProgram(renderingProgramSURFACE); // Bắt đầu với mặt nước
-		vLoc = gl.glGetUniformLocation(renderingProgramSURFACE, "v_matrix");
-		pLoc = gl.glGetUniformLocation(renderingProgramSURFACE, "p_matrix");
-		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
-		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-
-		// ========================
-		// Vẽ mặt nước (Surface)
-		// ========================
-		gl.glUseProgram(renderingProgramSURFACE); // Sử dụng shader riêng cho mặt nước
-
-		// Cập nhật Model và Model-View matrices
-		mMat.identity();
-		mMat.translation(0, 0, 0);
-		mvMat.identity();
-		mvMat.mul(vMat).mul(mMat);
-		mvLoc = gl.glGetUniformLocation(renderingProgramSURFACE, "mv_matrix");
-		mLoc = gl.glGetUniformLocation(renderingProgramSURFACE, "m_matrix");
-		nLoc = gl.glGetUniformLocation(renderingProgramSURFACE, "norm_matrix");
-		// set up lights
-		currentLightPos.set(initialLightLoc);
-		installLights(renderingProgramSURFACE);
-		// build the inverse-transpose of the MV matrix, for transforming normal vectors
-		mMat.invert(invTrMat);
-		invTrMat.transpose(invTrMat);
-		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
-		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
-		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
-		// Điều chỉnh chiều hiển thị (Winding Order)
-		if (cameraPosition.y >= surfacePlaneHeight) {
-			gl.glFrontFace(GL_CCW); // Camera trên mặt nước
-		} else {
-			gl.glFrontFace(GL_CW); // Camera dưới mặt nước
-		}
-
-		// Thiết lập VAO/VBO
-		gl.glBindVertexArray(vao[2]);
-		gl.glEnableVertexAttribArray(0); // Vertex positions
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
-		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-
-		gl.glEnableVertexAttribArray(1); // Texture coordinates
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[7]);
-		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
-
-		gl.glEnableVertexAttribArray(2); // Normals
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[8]);
-		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
-		gl.glEnable(GL_DEPTH_TEST);
-		gl.glDepthFunc(GL_LEQUAL);
-		// Vẽ mặt nước
-		gl.glDrawArrays(GL_TRIANGLES, 0, 6);
-
-		// ========================
-		// Vẽ mặt sàn (Floor)
-		// ========================
-		gl.glUseProgram(planeProgram); // Chuyển sang shader riêng cho sàn
-		// Cập nhật Model và Model-View matrices
-		mMat.identity();
-		mMat.translation(0, floorPlaneHeight, 0);
-		mvMat.identity();
-		mvMat.mul(vMat).mul(mMat);
-		mvLoc = gl.glGetUniformLocation(planeProgram, "mv_matrix");
-		mLoc = gl.glGetUniformLocation(planeProgram, "m_matrix");
-		vLoc = gl.glGetUniformLocation(planeProgram, "v_matrix");
-		pLoc = gl.glGetUniformLocation(planeProgram, "p_matrix");
-		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
-		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
-		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
-
-		// Thiết lập VAO/VBO
-		gl.glBindVertexArray(vao[2]);
-		gl.glEnableVertexAttribArray(0); // Vertex positions
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
-		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-
-		gl.glEnableVertexAttribArray(1); // Texture coordinates
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[7]);
-		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
-
-		gl.glEnableVertexAttribArray(2); // Normals
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[8]);
-		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
-		// Chiều hiển thị luôn CCW cho mặt sàn
-		gl.glFrontFace(GL_CCW);
-		// Vẽ mặt sàn
-		// if (cameraPosition.y < surfacePlaneHeight)
-		gl.glDrawArrays(GL_TRIANGLES, 0, 6);
-	}
-
-	private void renderSkybox(GL4 gl) {
-		// Sử dụng chương trình shader của skybox
-		gl.glUseProgram(skyboxProgram);
-
-		// Xây dựng View matrix (chỉ áp dụng phép quay)
-		vMat.identity();
-		vMat.rotateX((float) Math.toRadians(-cameraPitch));
-		vMat.rotateY((float) Math.toRadians(-cameraYaw));
-		vMat.translate(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
-
-		// Model matrix của skybox (luôn ở gốc tọa độ)
-		mMat.identity();
-
-		// Tính toán Model-View matrix
-		mvMat.identity();
-		mvMat.mul(vMat).mul(mMat);
-		mvMat.scale(1);
-		// Gửi các ma trận tới shader
-		vLoc = gl.glGetUniformLocation(skyboxProgram, "v_matrix");
-		pLoc = gl.glGetUniformLocation(skyboxProgram, "p_matrix");
-		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
-		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-
-		// Gắn VAO và VBO của skybox
-		gl.glBindVertexArray(vao[1]);
-		// set up vertices buffer for cube (buffer for texture coordinates not
-		// necessary)
-		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
-		gl.glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-		gl.glEnableVertexAttribArray(0);
-		// make the cube map the active texture
-		gl.glActiveTexture(GL_TEXTURE0);
-		gl.glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
-		// disable depth testing, and then draw the cube map
-		gl.glEnable(GL_CULL_FACE);
-		gl.glFrontFace(GL_CCW);
-		gl.glDisable(GL_DEPTH_TEST);
-		gl.glDrawArrays(GL_TRIANGLES, 0, 36);
-		gl.glEnable(GL_DEPTH_TEST);
-	}
-
 	private void renderTorus(GL4 gl) {
 		// Sử dụng chương trình shader của torus
 		gl.glUseProgram(renderingProgram);
@@ -598,7 +475,7 @@ public class Program15_3 extends JFrame implements GLEventListener {
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 		gl.glActiveTexture(GL_TEXTURE0);
-		gl.glBindTexture(GL_TEXTURE_2D, brickTexture);
+		gl.glBindTexture(GL_TEXTURE_2D, refractTextureId);
 
 		gl.glEnableVertexAttribArray(2); // Normal vectors
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
@@ -661,10 +538,27 @@ public class Program15_3 extends JFrame implements GLEventListener {
 		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		gl.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, bufferId[0], 0);
+
 		// initialize refraction framebuffer
 		gl.glGenFramebuffers(1, bufferId, 0);
 		refractFrameBuffer = bufferId[0];
 		gl.glBindFramebuffer(GL_FRAMEBUFFER, refractFrameBuffer);
+		gl.glGenTextures(1, bufferId, 0);
+		refractTextureId = bufferId[0];
+		gl.glBindTexture(GL_TEXTURE_2D, refractTextureId);
+		gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, myCanvas.getWidth(), myCanvas.getHeight(), 0, GL_RGBA,
+				GL_UNSIGNED_BYTE, null);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		gl.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, refractTextureId, 0);
+		gl.glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		gl.glGenTextures(1, bufferId, 0);
+		gl.glBindTexture(GL_TEXTURE_2D, bufferId[0]);
+		gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, myCanvas.getWidth(), myCanvas.getHeight(), 0,
+				GL_DEPTH_COMPONENT, GL_FLOAT, null);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		gl.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, bufferId[0], 0);
 	}
 
 	private void prepForSkyBoxRender() {
@@ -700,6 +594,14 @@ public class Program15_3 extends JFrame implements GLEventListener {
 		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
 		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
+
+		///
+		aboveLoc = gl.glGetUniformLocation(renderingProgramSURFACE, "isAbove");
+		if (cameraPosition.y >= surfacePlaneHeight) {
+			gl.glUniform1i(aboveLoc, 1);
+		} else
+			gl.glUniform1i(aboveLoc, 0);
+
 		// VBOs 1, 2, and 3 contain the plane vertices, texcoords, and normals
 		gl.glBindVertexArray(vao[2]);
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
@@ -716,20 +618,37 @@ public class Program15_3 extends JFrame implements GLEventListener {
 	private void prepForFloorRender() {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		gl.glUseProgram(renderingProgramFLOOR);
-		mLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "m_matrix");
-		vLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "v_matrix");
-		pLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "p_matrix");
-		nLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "norm_matrix");
+//		mLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "m_matrix");
+//		vLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "v_matrix");
+//		pLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "p_matrix");
+//		nLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "norm_matrix");
 //		aboveLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "isAbove");
-		mMat.translation(0.0f, floorPlaneHeight, 0.0f);
-		mMat.invert(invTrMat);
-		invTrMat.transpose(invTrMat);
-		currentLightPos.set(initialLightLoc);
-		installLights(renderingProgramFLOOR);
-		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
+//		mMat.translation(0.0f, floorPlaneHeight, 0.0f);
+//		mMat.invert(invTrMat);
+//		invTrMat.transpose(invTrMat);
+//		currentLightPos.set(initialLightLoc);
+//		installLights(renderingProgramFLOOR);
+//		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
+//		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
+//		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
+//		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
+		mMat.identity();
+		mMat.translation(0, floorPlaneHeight, 0);
+		mvMat.identity();
+		mvMat.mul(vMat).mul(mMat);
+		mvLoc = gl.glGetUniformLocation(planeProgram, "mv_matrix");
+		mLoc = gl.glGetUniformLocation(planeProgram, "m_matrix");
+		vLoc = gl.glGetUniformLocation(planeProgram, "v_matrix");
+		pLoc = gl.glGetUniformLocation(planeProgram, "p_matrix");
 		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
 		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
+		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
+		aboveLoc = gl.glGetUniformLocation(renderingProgramSURFACE, "isAbove");
+		if (cameraPosition.y >= surfacePlaneHeight)
+			gl.glUniform1i(aboveLoc, 1);
+		else
+			gl.glUniform1i(aboveLoc, 0);
 		//
 		gl.glBindVertexArray(vao[2]);
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
