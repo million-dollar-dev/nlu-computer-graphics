@@ -144,12 +144,12 @@ public class TestObjectImportWithTex extends JFrame implements GLEventListener {
 	public void init(GLAutoDrawable drawable) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		renderingProgram = Utils.createShaderProgram(vShaderSource, fShaderSource);
-		myModel = new ImportedModel("Rock_terrain_retopo.obj");
+		myModel = new ImportedModel("mountain.obj");
 		setupVertices();
 		cameraX = 0.0f;
 		cameraY = 0.0f;
 		cameraZ = 8.0f;
-		texture = Utils.loadTexture("Rock_terrain_retopo.png");
+		texture = Utils.loadTexture("mountain.png");
 //		System.out.println(texture);
 //		gl.glBindTexture(GL_TEXTURE_2D, texture);
 //		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);

@@ -98,39 +98,8 @@ public class ImportedModel {
 					for (String s : (line.substring(2)).trim().split("\\s+")) {
 						vertVals.add(Float.valueOf(s)); // extract the vertex position values
 					}
-				}
-//				else if (line.startsWith("f")) // triangle faces ("f" case)
-//				{
-//					System.out.println("f: " + line);
-//					for (String s : (line.substring(2)).trim().split("\\s+")) {
-//
-//						String[] indices = s.split("/");
-//
-//						String v = indices.length > 0 ? indices[0] : "0";
-//						String vt = indices.length > 1 ? indices[1] : "0";
-//						String vn = indices.length > 2 ? indices[2] : "0";
-//
-//						int vertRef = (Integer.valueOf(v) - 1) * 3;
-//						int tcRef = (Integer.valueOf(vt) - 1) * 2;
-//						int normRef = (Integer.valueOf(vn) - 1) * 3;
-//						triangleVerts.add(vertVals.get(vertRef)); // build array of vertices
-//						triangleVerts.add(vertVals.get(vertRef + 1));
-//						triangleVerts.add(vertVals.get(vertRef + 2));
-//						textureCoords.add(stVals.get(tcRef)); // build array of
-//						textureCoords.add(stVals.get(tcRef + 1)); // texture coordinates.
-//						normals.add(normVals.get(normRef)); // … and normals
-//						normals.add(normVals.get(normRef + 1));
-//						normals.add(normVals.get(normRef + 2));
-//					}
-//				}
-				else if (line.startsWith("f")) // triangle faces ("f" case)
-				{
-//				    System.out.println("f: " + line);
-
-					// Tách các đỉnh của mặt
+				} else if (line.startsWith("f")) {
 					String[] vertices = (line.substring(2)).trim().split("\\s+");
-
-					// Nếu là tứ giác (4 đỉnh)
 					if (vertices.length == 4) {
 						// Xử lý tam giác 1: (v1, v2, v3)
 						processFaceVertex(vertices[0], vertVals, stVals, normVals, triangleVerts, textureCoords,
@@ -147,9 +116,7 @@ public class ImportedModel {
 								normals);
 						processFaceVertex(vertices[3], vertVals, stVals, normVals, triangleVerts, textureCoords,
 								normals);
-					}
-					// Nếu là tam giác (3 đỉnh)
-					else if (vertices.length == 3) {
+					} else if (vertices.length == 3) {
 						processFaceVertex(vertices[0], vertVals, stVals, normVals, triangleVerts, textureCoords,
 								normals);
 						processFaceVertex(vertices[1], vertVals, stVals, normVals, triangleVerts, textureCoords,
@@ -161,13 +128,6 @@ public class ImportedModel {
 
 			}
 			input.close();
-//			System.out.println("----------triagle---------------");
-//			triangleVerts.forEach(s -> System.out.println(s));
-//			System.out.println("-----------texture--------------");
-//			textureCoords.forEach(s -> System.out.println(s));
-//			System.out.println("-----------normals--------------");
-//			normals.forEach(s -> System.out.println(s));
-//			System.out.println(normVals.size());
 		}
 
 		// accessors for retrieving the number of vertices, the vertices themselves,
