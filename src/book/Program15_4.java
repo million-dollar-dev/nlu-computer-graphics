@@ -88,7 +88,6 @@ public class Program15_4 extends JFrame implements GLEventListener {
 	private int noiseDepth = 256;
 	double[][][] noise = new double[noiseWidth][noiseHeight][noiseDepth];
 	Random random = new Random();
-	
 
 	/** Constructor to setup the GUI for this Component */
 	public Program15_4() {
@@ -666,12 +665,30 @@ public class Program15_4 extends JFrame implements GLEventListener {
 		gl.glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
 		gl.glEnableVertexAttribArray(2);
 	}
-	
+
 	private void generateNoise() {
 		for (int x = 0; x < noiseWidth; x++) {
 			for (int y = 0; y < noiseHeight; y++) {
 				for (int z = 0; z < noiseDepth; z++) {
 					noise[x][y][z] = random.nextFloat();
+				}
+			}
+		}
+	}
+
+	private void fillDataArray(byte data[]) {
+		int zoom = 8;
+		// zoom factor
+		for (int i = 0; i < noiseWidth; i++) {
+			for (int j = 0; j < noiseHeight; j++) {
+				for (int k = 0; k < noiseDepth; k++) {
+					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4
+							+ 0] = (byte) (noise[i / zoom][j / zoom][k / zoom] * 255);
+					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4
+							+ 1] = (byte) (noise[i / zoom][j / zoom][k / zoom] * 255);
+					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4
+							+ 2] = (byte) (noise[i / zoom][j / zoom][k / zoom] * 255);
+					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4 + 3] = (byte) 255;
 				}
 			}
 		}

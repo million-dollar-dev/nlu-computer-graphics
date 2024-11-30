@@ -1,4 +1,4 @@
-#version 430
+#version 430 
 in vec3 varyingNormal;
 in vec3 varyingLightDir;
 in vec3 varyingVertPos;
