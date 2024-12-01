@@ -144,12 +144,12 @@ public class TestObjectImportWithTex extends JFrame implements GLEventListener {
 	public void init(GLAutoDrawable drawable) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		renderingProgram = Utils.createShaderProgram(vShaderSource, fShaderSource);
-		myModel = new ImportedModel("mountain.obj");
+		myModel = new ImportedModel("boat.obj");
 		setupVertices();
 		cameraX = 0.0f;
 		cameraY = 0.0f;
 		cameraZ = 8.0f;
-		texture = Utils.loadTexture("mountain.png");
+		texture = Utils.loadTexture("boat2.png");
 //		System.out.println(texture);
 //		gl.glBindTexture(GL_TEXTURE_2D, texture);
 //		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -197,6 +197,7 @@ public class TestObjectImportWithTex extends JFrame implements GLEventListener {
 		mvMat.identity();
 		mvMat.mul(vMat).mul(mMat);
 		//mvMat.scale(0.0075f);
+		//mvMat.scale(.0f);
 		mvMat.scale(0.05f);
 		// Send matrices to shader
 		mvLoc = gl.glGetUniformLocation(renderingProgram, "mv_matrix");
