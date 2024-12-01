@@ -1,4 +1,4 @@
-#version 430
+#version 430 
 in vec2 tc; 
 out vec4 color;
 uniform mat4 mv_matrix;

@@ -40,8 +40,10 @@ public class Program15_4 extends JFrame implements GLEventListener {
 	private Matrix4f mvMat = new Matrix4f();
 	private int mvLoc, pLoc, vLoc, mLoc, nLoc;
 	private float aspect;
-	private String vShaderSource = "vertShader5_1.glsl";
-	private String fShaderSource = "fragShader5_1.glsl";
+	private String vShaderSource = "vertShader14_5.glsl";
+	private String fShaderSource = "fragShader14_5.glsl";
+//	private String vShaderSource = "vertShader5_1.glsl";
+//	private String fShaderSource = "fragShader5_1.glsl";
 	// Camera
 	private float cameraYaw = 0.0f; // Góc quay trái/phải của camera
 	private float cameraPitch = 0.0f; // Góc quay lên/xuống của camera
@@ -58,7 +60,7 @@ public class Program15_4 extends JFrame implements GLEventListener {
 	private float floorPlaneHeight = -10.0f;
 
 	// initial light location
-	private Vector3f initialLightLoc = new Vector3f(2.0f, 2.0f, 2.0f);
+	private Vector3f initialLightLoc = new Vector3f(2.0f, 50.0f, 2.0f);
 	private float lightSpeed = 0.1f; // Tốc độ di chuyển nguồn sáng
 	private float lightYaw = 0.0f; // Góc xoay quanh trục Y (theo chiều ngang)
 	// properties of white light (global and positional) used in this scene
@@ -83,6 +85,7 @@ public class Program15_4 extends JFrame implements GLEventListener {
 	private int aboveLoc;
 
 	// wave
+	private int noiseTexture;
 	private int noiseWidth = 256;
 	private int noiseHeight = 256;
 	private int noiseDepth = 256;
@@ -156,6 +159,7 @@ public class Program15_4 extends JFrame implements GLEventListener {
 				}
 
 				System.out.println("camera y: " + cameraPosition.y + " / " + surfacePlaneHeight);
+				System.out.println("light: " + initialLightLoc.x + " - " + initialLightLoc.y + " - " + initialLightLoc.z);
 			}
 		});
 		// camera
@@ -199,9 +203,10 @@ public class Program15_4 extends JFrame implements GLEventListener {
 		planeProgram = Utils.createShaderProgram(vShaderSource, "fragShader15_1.glsl");
 //		renderingProgramFLOOR = Utils.createShaderProgram("vertShader15_3_Surface.glsl",
 //				"fragShader15_3_Surface.glsl");
-		renderingProgramSURFACE = Utils.createShaderProgram("vertShader15_3.glsl", "fragShader15_3.glsl");
+		renderingProgramSURFACE = Utils.createShaderProgram("vertShader15_4.glsl", "fragShader15_4.glsl");
 		renderingProgramFLOOR = Utils.createShaderProgram("vertShader5_1.glsl", "fragShader15_1.glsl");
 		renderingProgramCubeMap = Utils.createShaderProgram("vertShader9_2.glsl", "fragShader9_2.glsl");
+//		renderingProgramFLOOR = Utils.createShaderProgram("vertShaderFLOOR.glsl", "fragShaderFLOOR.glsl");
 		setupVertices();
 		// Camera position
 		cameraX = 0.0f;
@@ -223,12 +228,18 @@ public class Program15_4 extends JFrame implements GLEventListener {
 				new Vector3f(0.0f, 1.0f, 0.0f));
 		brickTexture = Utils.loadTexture("brick1.png");
 		gl.glBindTexture(GL_TEXTURE_2D, brickTexture);
-		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		
 		skyboxTexture = Utils.loadCubeMap("assets");
 		gl.glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		System.out.println(cameraPosition.y);
 		createReflectRefractBuffers();
+		//waves
+		gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		generateNoise();
+		noiseTexture = buildNoiseTexture();
+		System.out.println(noiseTexture);
 	}
 
 	/**
@@ -252,7 +263,7 @@ public class Program15_4 extends JFrame implements GLEventListener {
 
 		// -------------------- Render Reflection Scene --------------------
 		if (cameraPosition.y >= surfacePlaneHeight) {
-			vMat.identity();
+//			vMat.identity();
 			vMat.translate(0.0f, cameraPosition.y - surfacePlaneHeight, 0.0f);
 			vMat.rotateX((float) Math.toRadians(-cameraPitch));
 
@@ -268,7 +279,7 @@ public class Program15_4 extends JFrame implements GLEventListener {
 		}
 
 		// -------------------- Render Refraction Scene --------------------
-		vMat.identity();
+//		vMat.identity();
 		vMat.translate(0.0f, -cameraPosition.y, 0.0f);
 		vMat.rotateX((float) Math.toRadians(cameraPitch));
 
@@ -314,6 +325,8 @@ public class Program15_4 extends JFrame implements GLEventListener {
 		gl.glBindTexture(GL_TEXTURE_2D, reflectTextureId);
 		gl.glActiveTexture(GL_TEXTURE1);
 		gl.glBindTexture(GL_TEXTURE_2D, refractTextureId);
+		gl.glActiveTexture(GL_TEXTURE2);
+		gl.glBindTexture(GL_TEXTURE_3D, noiseTexture);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
 //	    gl.glFrontFace(GL_CCW);
@@ -326,6 +339,8 @@ public class Program15_4 extends JFrame implements GLEventListener {
 
 		// Render Floor
 		prepForFloorRender();
+		gl.glActiveTexture(GL_TEXTURE0);
+		gl.glBindTexture(GL_TEXTURE_3D, noiseTexture);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
 		gl.glFrontFace(GL_CCW);
@@ -479,7 +494,7 @@ public class Program15_4 extends JFrame implements GLEventListener {
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		gl.glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 		gl.glActiveTexture(GL_TEXTURE0);
-		gl.glBindTexture(GL_TEXTURE_2D, refractTextureId);
+		gl.glBindTexture(GL_TEXTURE_2D, noiseTexture);
 
 		gl.glEnableVertexAttribArray(2); // Normal vectors
 		gl.glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
@@ -622,20 +637,6 @@ public class Program15_4 extends JFrame implements GLEventListener {
 	private void prepForFloorRender() {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		gl.glUseProgram(renderingProgramFLOOR);
-//		mLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "m_matrix");
-//		vLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "v_matrix");
-//		pLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "p_matrix");
-//		nLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "norm_matrix");
-//		aboveLoc = gl.glGetUniformLocation(renderingProgramFLOOR, "isAbove");
-//		mMat.translation(0.0f, floorPlaneHeight, 0.0f);
-//		mMat.invert(invTrMat);
-//		invTrMat.transpose(invTrMat);
-//		currentLightPos.set(initialLightLoc);
-//		installLights(renderingProgramFLOOR);
-//		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
-//		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
-//		gl.glUniformMatrix4fv(pLoc, 1, false, pMat.get(vals));
-//		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
 		mMat.identity();
 		mMat.translation(0, floorPlaneHeight, 0);
 		mvMat.identity();
@@ -676,22 +677,84 @@ public class Program15_4 extends JFrame implements GLEventListener {
 		}
 	}
 
+	private int buildNoiseTexture() {
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		byte[] data = new byte[noiseWidth * noiseHeight * noiseDepth * 4];
+		fillDataArray(data);
+		ByteBuffer bb = Buffers.newDirectByteBuffer(data);
+		int[] textureIDs = new int[1];
+		gl.glGenTextures(1, textureIDs, 0);
+		int textureID = textureIDs[0];
+		gl.glBindTexture(GL_TEXTURE_3D, textureID);
+		gl.glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA8, noiseWidth, noiseHeight, noiseDepth);
+		gl.glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, noiseWidth, noiseHeight, noiseDepth, GL_RGBA,
+				GL_UNSIGNED_INT_8_8_8_8_REV, bb);
+		gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//		gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//		gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//		gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		return textureID;
+	}
+
 	private void fillDataArray(byte data[]) {
-		int zoom = 8;
-		// zoom factor
+		double maxZoom = 32.0;
 		for (int i = 0; i < noiseWidth; i++) {
 			for (int j = 0; j < noiseHeight; j++) {
 				for (int k = 0; k < noiseDepth; k++) {
-					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4
-							+ 0] = (byte) (noise[i / zoom][j / zoom][k / zoom] * 255);
-					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4
-							+ 1] = (byte) (noise[i / zoom][j / zoom][k / zoom] * 255);
-					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4
-							+ 2] = (byte) (noise[i / zoom][j / zoom][k / zoom] * 255);
+					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4 + 0] = (byte) turbulence(i,
+							j, k, maxZoom);
+					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4 + 1] = (byte) turbulence(i,
+							j, k, maxZoom);
+					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4 + 2] = (byte) turbulence(i,
+							j, k, maxZoom);
 					data[i * (noiseWidth * noiseHeight * 4) + j * (noiseHeight * 4) + k * 4 + 3] = (byte) 255;
 				}
 			}
 		}
+	}
+
+	private double smoothNoise(double zoom, double x1, double y1, double z1) { // fraction of x1, y1, and z1 (percentage
+																				// from
+		// current block to next block, for this texel)
+		double fractX = x1 - (int) x1;
+		double fractY = y1 - (int) y1;
+		double fractZ = z1 - (int) z1;
+		// indices for neighboring values with wrapping at the ends
+		double x2 = x1 - 1;
+		if (x2 < 0)
+			x2 = (Math.round(noiseWidth / zoom)) - 1.0;
+		double y2 = y1 - 1;
+		if (y2 < 0)
+			y2 = (Math.round(noiseHeight / zoom)) - 1.0;
+		double z2 = z1 - 1;
+		if (z2 < 0)
+			z2 = (Math.round(noiseDepth / zoom)) - 1.0;
+		// smooth the noise by interpolating the greyscale intensity along all three
+		// axes
+		double value = 0.0;
+		value += fractX * fractY * fractZ * noise[(int) x1][(int) y1][(int) z1];
+		value += (1 - fractX) * fractY * fractZ * noise[(int) x2][(int) y1][(int) z1];
+		value += fractX * (1 - fractY) * fractZ * noise[(int) x1][(int) y2][(int) z1];
+		value += (1 - fractX) * (1 - fractY) * fractZ * noise[(int) x2][(int) y2][(int) z1];
+		value += fractX * fractY * (1 - fractZ) * noise[(int) x1][(int) y1][(int) z2];
+		value += (1 - fractX) * fractY * (1 - fractZ) * noise[(int) x2][(int) y1][(int) z2];
+		value += fractX * (1 - fractY) * (1 - fractZ) * noise[(int) x1][(int) y2][(int) z2];
+		value += (1 - fractX) * (1 - fractY) * (1 - fractZ) * noise[(int) x2][(int) y2][(int) z2];
+		return value;
+	}
+
+	private double turbulence(double x, double y, double z, double maxZoom) {
+		double sum = 0.0, zoom = maxZoom;
+		sum = (Math.sin((1.0 / 512.0) * (8 * Math.PI) * (x + z)) + 1) * 8.0;
+		while (zoom >= 0.9) {
+			// the last pass is when zoom=1.
+			// compute weighted sum of smoothed noise maps
+			sum = sum + smoothNoise(zoom, x / zoom, y / zoom, z / zoom) * zoom;
+			zoom = zoom / 2.0;
+			// for each zoom factor that is a power of two.
+		}
+		sum = 128.0 * sum / maxZoom; // guarantees RGB < 256 for maxZoom values up to 64
+		return sum;
 	}
 
 	/** The entry main() method to setup the top-level container and animator */
